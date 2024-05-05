@@ -127,7 +127,7 @@ void ReadableBoard(bitboard b){
 
 void FenApply(bitboard* b, char *fen){
 	char *t = strtok(fen , " ");
-	if( strcmp(t,"startpos\n") == 0){
+	if( strcmp(t,"startpos") == 0){
 		strcpy(fen, START_FEN);
 	}
 	*b = {}; //clean board
@@ -688,8 +688,7 @@ float Search(bitboard b, int side, int depth, int rp = 0){
 }
 
 bitboard Next(bitboard b, int depth){
-	std::cout << "depth " << depth << std::endl;
-	int side = (1ULL << 7 & b.key) ? WHITE : BLACK;
+	int side = (1ULL << 9 & b.key) ? WHITE : BLACK;
 	output m = movegen(b,side);
 	std::vector<float> Val_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;
@@ -718,7 +717,8 @@ bitboard Next(bitboard b, int depth){
 			Max_quantity--;
 		}
 		if(Max_quantity == 0){
-			std::cout << ctos(m.from[i]) << ctos(m.to[i]) << std::endl;
+			bestmove = ctos(m.from[i]).append(ctos(m.to[i]));
+			//std::cout << "bestmove" << ctos(m.from[i]) << ctos(m.to[i]) << std::endl;
 			return FromTo(b, m.from[i], m.to[i], m.PieceType[i]);
 			//return ctos(m.from[i]) + ctos(m.to[i]);
 		}
@@ -784,9 +784,11 @@ void Uci(){
 
 	char text[300] = {};
 	bitboard x = {};
+	FILE *fptr = fopen("f.txt", "w");
 	while(strcmp(text, "quit") != 0){
 		memset(text, 0, 300);
 		fgets(text, 300, stdin);
+		fprintf(fptr, text);
 		char *t = strtok(text, " \n"); // get the first word
 		if(strcmp(t, "uci") == 0){
 			printf("id name Shit Engine\n");
@@ -799,9 +801,7 @@ void Uci(){
 		}
 		else if(strcmp(t, "go") == 0){ // U WAS HERE
 			t = strtok(NULL, " \n");
-			std::cout << t << std::endl;
 			if(std::stoi(t) < 10){
-				std::cout << "depth " << *t << std::endl;
 				x = Next(x, std::stoi(t));
 			}
 			else{
@@ -811,7 +811,17 @@ void Uci(){
 		else if(strcmp(t, "d") == 0){
 			ReadableBoard(x);
 		}
+		else if(strcmp(t, "stop") == 0){
+			std::cout << "bestmove " << bestmove << std::endl;
+		}
+		else if(strcmp(t, "isready") == 0){
+			std::cout << "readyok" << std::endl;
+		}
+		else if(strcmp(t, "ucinewgame") == 0){
+			x = {};
+		}
 	}
+	fclose(fptr);
 }
 
 /*

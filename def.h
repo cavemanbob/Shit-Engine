@@ -38,6 +38,7 @@ struct bitboard{
 	u32 key; // 7-0 -> move counter / 8 -> turn / 12-9 -> castling / 19-13 -> fifty move
 				// castling 1111 -> W_OO W_OOO B_OO B_OOO
 				// 20-27 -> enpassant
+				// turn white 1 black 0
 
 #ifdef DEBUG
 	u64 oldsquare;
@@ -79,7 +80,7 @@ enum Piece : int{
 	En_W, En_B
 };
 enum side : int{
-	BLACK = 0, WHITE
+	BLACK = 0, WHITE = 1
 };
 
 u64 state = 11349138731524945662ULL; //seed
@@ -100,6 +101,7 @@ enum Val : int{
 	KING_VAL = 20000
 };
 
+std::string bestmove("     ");
 
 
 
