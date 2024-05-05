@@ -88,6 +88,14 @@ void PrintBitBoard(u64 b){
 	std::cout << '\n';
 }
 
+std::string ctos(int x){ // cordinate to string 54 -> e4
+	std::string StrPieces = "abcdefgh";
+	std::string r("  ");
+	r[0] = StrPieces[x/8];
+	r[1] = '0' + x%8;
+	return r;
+}
+
 void ReadableBoard(bitboard b){
 	std::string StrPieces = "RNBQKPrnbqkp";
 	for(int i=7; i>=0; i--){
@@ -117,11 +125,18 @@ void ReadableBoard(bitboard b){
 }
 
 
-void FenApply(bitboard* b, std::string fen){	
+void FenApply(bitboard* b, char *fen){
+	char *t = strtok(fen , " ");
+	if( strcmp(t,"startpos\n") == 0){
+		strcpy(fen, START_FEN);
+	}
+	*b = {}; //clean board
+
+	std::string fenstr(fen);
 	std::string StrPieces = "RNBQKPrnbqkp";
 	int index = 56 , space=0;
-	for(char x : fen){
-		if(x =='/'){
+	for(char x : fenstr){
+		if(x == '/'){
 			index-=16;
 			continue;
 		}
@@ -239,11 +254,6 @@ void InitBishopAttacks(){
 	}
 }
 
-inline u64 ApplyPermId(u64 permid,const u64 m){
-	u64 l = 0ULL;
-	
-	return l;
-}
 
 
 void FindMagics(u64* mask, u64* magictable, u64 lookup[][4096], int piece){
@@ -677,7 +687,9 @@ float Search(bitboard b, int side, int depth, int rp = 0){
 	return val;
 }
 
-bitboard Next(bitboard b, int side, int depth){
+bitboard Next(bitboard b, int depth){
+	std::cout << "depth " << depth << std::endl;
+	int side = (1ULL << 7 & b.key) ? WHITE : BLACK;
 	output m = movegen(b,side);
 	std::vector<float> Val_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;
@@ -706,13 +718,17 @@ bitboard Next(bitboard b, int side, int depth){
 			Max_quantity--;
 		}
 		if(Max_quantity == 0){
+			std::cout << ctos(m.from[i]) << ctos(m.to[i]) << std::endl;
 			return FromTo(b, m.from[i], m.to[i], m.PieceType[i]);
+			//return ctos(m.from[i]) + ctos(m.to[i]);
 		}
 	}
-	std::cout << "Error No Max Picked";
+	//std::cout << "Error No Max Picked";
+	std::cout << ctos(m.from[0]) << ctos(m.to[0]) << std::endl;
 	return FromTo(b, m.from[0], m.to[0], m.PieceType[0]);
+	//return ctos(m.from[0]) + ctos(m.to[0]);
 }
-
+/*
 void GameLoop(){
 	InitPawnAttacks();
 	InitPawnPushes();
@@ -733,13 +749,13 @@ void GameLoop(){
 	//std::string fen = "8/8/2p3p1/8/3P4/8/P7/8 w - - 0 1";
 	FenApply(&x, fen);
 	char inp[100] = {1,0};
-/*	while(inp[0] != 'x'){
+	while(inp[0] != 'x'){
 		ReadableBoard(x);
 		scanf("%s", inp);
 		x = PlayerMove(x, inp);
 		ReadableBoard(x);
 		x = Next(x, BLACK, 3);
-	}*/
+	}
 	while(inp[0] != 'x'){
 		ReadableBoard(x);
 		x = Next(x, WHITE, 5);
@@ -751,9 +767,54 @@ void GameLoop(){
 	}
 
 
+}*/
+
+
+void Uci(){
+	InitPawnAttacks();
+	InitPawnPushes();
+	InitKnightAttacks();
+	InitKingAttacks();
+	InitRookAttacks();
+	InitBishopAttacks();
+	FindMagics(RelevantBishopMask, BishopMagics, BishopBase, BISHOP);
+	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
+	rand64();
+
+
+	char text[300] = {};
+	bitboard x = {};
+	while(strcmp(text, "quit") != 0){
+		memset(text, 0, 300);
+		fgets(text, 300, stdin);
+		char *t = strtok(text, " \n"); // get the first word
+		if(strcmp(t, "uci") == 0){
+			printf("id name Shit Engine\n");
+			printf("id author Efe Burak Ostundag <Cavemanbob>\n");
+			printf("uciok\n");
+		}
+		if(strcmp(t, "position") == 0){
+			t = strtok(NULL, " \n");
+			FenApply(&x, t);
+		}
+		else if(strcmp(t, "go") == 0){ // U WAS HERE
+			t = strtok(NULL, " \n");
+			std::cout << t << std::endl;
+			if(std::stoi(t) < 10){
+				std::cout << "depth " << *t << std::endl;
+				x = Next(x, std::stoi(t));
+			}
+			else{
+				x = Next(x, 4);
+			}
+		}
+		else if(strcmp(t, "d") == 0){
+			ReadableBoard(x);
+		}
+	}
 }
 
-
+/*
 void TestMoveGen(){
 	bitboard x={};
 	std::string fen = START_FEN;
@@ -775,4 +836,4 @@ void Test2MoveGen(int side){
 		ReadableBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]));
 	}
 	std::cout << m.from.size();
-}
+}*/
