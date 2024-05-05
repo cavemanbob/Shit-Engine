@@ -37,6 +37,7 @@ struct bitboard{
 
 	u32 key; // 7-0 -> move counter / 8 -> turn / 12-9 -> castling / 19-13 -> fifty move
 				// castling 1111 -> W_OO W_OOO B_OO B_OOO
+				// 20-27 -> enpassant
 
 #ifdef DEBUG
 	u64 oldsquare;
@@ -74,7 +75,8 @@ enum PieceType : int{
 
 enum Piece : int{
 	ROOK_W=0, KNIGHT_W, BISHOP_W, QUEEN_W, KING_W, PAWN_W,
-	ROOK_B=6, KNIGHT_B, BISHOP_B, QUEEN_B, KING_B, PAWN_B
+	ROOK_B=6, KNIGHT_B, BISHOP_B, QUEEN_B, KING_B, PAWN_B,
+	En_W, En_B
 };
 enum side : int{
 	BLACK = 0, WHITE
@@ -87,6 +89,15 @@ struct output{
 	std::vector<int> from;
 	std::vector<int> to;
 	std::vector<int> PieceType;
+};
+
+enum Val : int{
+	PAWN_VAL = 100,
+	ROOK_VAL = 500,
+	BISHOP_VAL = 320,
+	KNIGHT_VAL = 280,
+	QUEEN_VAL = 980,
+	KING_VAL = 20000
 };
 
 
