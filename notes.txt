@@ -1,0 +1,137 @@
+a1 = first bit so
+
+
+8 . . . . . . . .
+7 . . . . . . . .
+6 . . X . . . . .
+5 . . . . . . . .
+4 . . . . . . . .
+3 . . . . . . . .
+2 . . . . . . . .
+1 . . . . . . . . 
+  A B C D E F G H
+
+
+
+
+
+00001111
+00001111
+00001111
+00001111
+00001111
+00001111
+00001111
+00001111
+
+0000000
+0000000
+0000000
+0010000
+0000000
+0000000
+0000000
+0000000
+
+bitwise tricks
+
+get ls1b
+k & -k
+delete l1sb
+k &= k - 1
+
+get negative
+-k = ~(k - 1)
+
+bitcount
+while(x){
+	x &= x - 1;
+	y++;
+
+
+
+// random
+u64 rand64(){
+	u64 x = state;
+	x ^= x << 13;
+	x ^= x >> 7;
+	x ^= x << 17;
+	state = x;
+	return state;
+}
+
+Ls1bIndex(u64 x)
+BitCount(u64 x)
+BitCheck(u64 x)
+
+
+
+
+magic board alg
+rookbase[64][4096];
+rookmagic
+get index of 4096 at once based relevant bits;
+
+key = relevant occupancy
+index = 64 - bitcount(relevant  bit)
+
+key * magic >> (64 - index)
+
+256kb
+
+plain
+get occupied & relevant[square] as key
+we have 2^12 perm so for all of them we need a different index less then 4096
+check is uniqe if is save 
+rookbase[square][blockers * rookmagic[square]]; answer ??
+
+findmagic(){
+	magic = rand64();
+	for(){ // check that is different for all perm of blockers
+	
+	}
+	if is uniqe attempt all blockers to bits;
+}
+
+
+struct node{
+	board position; //whole board 
+	float value;
+	std::vector<node*> nextpostions;
+};
+// or
+struct node{
+	std::vector<int> from; //possible moves id
+	std::vector<int> to; //we have to move forward and backward pieces while searching
+	float value;
+	std::vector<node*> nextpostions;
+};
+
+
+8 . . . . . . . .
+7 . . . . . . . .
+6 . . X . . . . .
+5 . . . . . . . .
+4 . . . . . . . .
+3 . . . . . . . .
+2 . . . . . . . .
+1 . . . . . . . . 
+  A B C D E F G H
+
+Move Types:
+	- Only moving occuppied to empty
+	- capture ocuppied to occupied
+	- Moving and promoting -> pawns
+
+
+Benchmark
+
+movegen
+-Stockfish 0.6 sec
+-Shit Engine 26.7 sec 
+
+
+
+
+
+
