@@ -134,4 +134,8 @@ movegen
 
 
 
+bug report
+--------------
 
+- Enpass bug when enemy captured 3rk1n1/p7/n5pr/1p6/5Pp1/2B1K3/PP2P1PP/R4B1R w - - 0 18 
+- movegen NO CASTLE produce

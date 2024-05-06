@@ -565,7 +565,7 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 	else if(piece == ROOK_B && from == 56) b.key &= ~(1ULL << 0);
 	else if(piece == ROOK_B && from == 63) b.key &= ~(1ULL << 1);
 	//enpass
-	if(piece == PAWN_B || piece == PAWN_W && abs(from / 8 - to / 8) > 1 ) {b.key &= ~(0b1111111 << 19); b.key ^= to << 19;} else b.key &= ~(0b1111111 << 19); //enpassant set key
+	if((piece == PAWN_B || piece == PAWN_W) && abs(from / 8 - to / 8) > 1 ) {b.key &= ~(0b1111111 << 19); b.key ^= to << 19;} else b.key &= ~(0b1111111 << 19); //enpassant set key
 #ifdef DEBUG
 	b.oldsquare = from;
 #endif
@@ -623,15 +623,37 @@ int BasicTree(bitboard b, int side, int depth, int first = 1){
 	}
 	return r;
 }
-
+/*
 float Evaluate(bitboard b){
 	float w_val = BitCount(b.wp) * PAWN_VAL + BitCount(b.wr) * ROOK_VAL + BitCount(b.wn) * KNIGHT_VAL + BitCount(b.wb) * BISHOP_VAL + BitCount(b.wq) * QUEEN_VAL + BitCount(b.wk) * KING_VAL;
 	float b_val = BitCount(b.bp) * PAWN_VAL + BitCount(b.br) * ROOK_VAL + BitCount(b.bn) * KNIGHT_VAL + BitCount(b.bb) * BISHOP_VAL + BitCount(b.bq) * QUEEN_VAL + BitCount(b.bk) * KING_VAL;
 	return w_val - b_val;
 }
+*/
+float Evaluate(bitboard b){
+	float w_val = BitCount(b.wp) * PAWN_VAL + BitCount(b.wr) * ROOK_VAL + BitCount(b.wn) * KNIGHT_VAL + BitCount(b.wb) * BISHOP_VAL + BitCount(b.wq) * QUEEN_VAL + BitCount(b.wk) * KING_VAL;
+	float b_val = BitCount(b.bp) * PAWN_VAL + BitCount(b.br) * ROOK_VAL + BitCount(b.bn) * KNIGHT_VAL + BitCount(b.bb) * BISHOP_VAL + BitCount(b.bq) * QUEEN_VAL + BitCount(b.bk) * KING_VAL;
+	while(b.woccupied){
+		int i, lsi = Ls1bIndex(b.woccupied);
+		for(i=0; i < 6; i++) if(BitCheck(b.woccupied,lsi))break;
+		b.woccupied &= b.woccupied - 1;
+		w_val += Pos_Val_Table[lsi + 64 * i];
+	}
+	while(b.boccupied){
+		int i, lsi = Ls1bIndex(b.boccupied);
+		for(i=0; i < 6; i++) if(BitCheck(b.boccupied,lsi))break;
+		b.boccupied &= b.boccupied - 1;
+		b_val -= Pos_Val_Table[64 - lsi + 64 * i];
+	}
+	return w_val - b_val;
+}
 
 
 float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
+	Node_Total++;
+	//printf("%d\n",depth);
+	if(b.wk == 0) return FLT_MIN;
+	if(b.bk == 0) return FLT_MAX;
 	if(depth == 0)
 		return Evaluate(b);
 	if(side == WHITE){
@@ -662,22 +684,17 @@ float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
 }
 
 float Search(bitboard b, int side, int depth, int rp = 0){
+	if(b.wk == 0) return FLT_MIN;
+	if(b.bk == 0) return FLT_MAX;
 	if(depth == 0) {return Evaluate(b);} // Evaluate -> sum of pieces values
 	output m = movegen(b, side); // pick the possible moves
 	float val = INT_MAX * (side == WHITE ? -1 : +1);
 	//int p = 0;	
 	for(int i=0; i < m.from.size(); i++){ // for each move
 		float t = Search(FromTo(b, m.from[i], m.to[i], m.PieceType[i]) , (side == WHITE) ? BLACK : WHITE , depth - 1); // rescuative loop
-		if(rp){
-			ReadableBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]));
-			PrintBitBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]).boccupied);
-			PrintBitBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]).woccupied);
-			std::cout << "val " << t << "   " << i <<"\n\n\n\n";
-		}
 		if (side == WHITE){ // find max
 			if(t > val){
 				val = t;
-				//p = i;
 			}
 		}
 		else{
@@ -686,33 +703,34 @@ float Search(bitboard b, int side, int depth, int rp = 0){
 			}
 		}
 	}
-	//ReadableBoard(FromTo(b, m.from[p], m.to[p], m.PieceType[p]));
-	//std::cout << "val " << val << "\n\n\n\n";
 	return val;
 }
 
 bitboard Next(bitboard b, int depth){
+	printf("info depth %d\n",depth);
+	Node_Total = 0;
 	int side = (1ULL << 8 & b.key) ? WHITE : BLACK;
 	output m = movegen(b,side);
 	std::vector<float> Val_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;
 	for(int i=0; i < m.from.size(); i++){
 		if(side == WHITE){
-			float alp = Search(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), BLACK, depth-1);
+			//float alp = Search(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), BLACK, depth-1);
+			float alp = alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, INT_MIN, INT_MAX, BLACK);
 			Val_table.push_back(alp);
 			if(val < alp){
 				val = alp;
 			}
 		}
 		else{
-			float alp = Search(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), WHITE, depth-1);
+			//float alp = Search(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), WHITE, depth-1);
+			float alp = alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, INT_MIN, INT_MAX, WHITE);
 			Val_table.push_back(alp);
 			if(val > alp){
 				val = alp;
 			}
 		}
 	}
-	printf("info depth %d\n",depth);
 	// Pick random max or min value between them
 	int Max_quantity = 0;
 	for(int i=0; i < Val_table.size(); i++) if(Val_table[i] == val) Max_quantity++;
@@ -723,6 +741,7 @@ bitboard Next(bitboard b, int depth){
 		}
 		if(Max_quantity == 0){
 			bestmove = ctos(m.from[i]).append(ctos(m.to[i]));
+			std::cout << "info nodes " << Node_Total << " string " << val << std::endl; 
 			std::cout << "bestmove " << ctos(m.from[i]) << ctos(m.to[i]) << std::endl;
 			//std::cout << "info cp " << val << std::endl;
 			return FromTo(b, m.from[i], m.to[i], m.PieceType[i]);
@@ -815,9 +834,9 @@ void Uci(){
 						t = strtok(NULL, " \n");
 					}
 				}
+			t = strtok(NULL, " \n");
 			}
 			//std::cout << "side " << (x.key >> 8 & 1ULL) << std::endl;
-			t = strtok(NULL, " \n");
 		}
 		else if(strcmp(t, "go") == 0){
 			int Did_Next = 0;
@@ -849,13 +868,13 @@ void Uci(){
 						x = Next(x, std::stoi(t));
 					}
 					else{
-						x = Next(x, 4);
+						x = Next(x, 8);
 					}
 					Did_Next = 1;
 				}
 				t = strtok(NULL, " \n");
 			}
-			if(Did_Next == 0) x = Next(x, 5);
+			if(Did_Next == 0)if(_game.wtime < 30000 || _game.btime < 30000) x = Next(x, 4); else x = Next(x, 6);
 		}
 		else if(strcmp(t, "d") == 0){
 			ReadableBoard(x);

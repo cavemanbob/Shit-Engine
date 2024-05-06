@@ -40,5 +40,6 @@ int main(){
 	std::cout << "S " << m.from.size() << std::endl;*/
 	//GameLoop();
 	Uci();
+	
 	return 0;
 }
