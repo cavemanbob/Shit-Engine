@@ -723,13 +723,14 @@ bitboard Next(bitboard b, int depth){
 		}
 		if(Max_quantity == 0){
 			bestmove = ctos(m.from[i]).append(ctos(m.to[i]));
-			//std::cout << "bestmove" << ctos(m.from[i]) << ctos(m.to[i]) << std::endl;
+			std::cout << "bestmove " << ctos(m.from[i]) << ctos(m.to[i]) << std::endl;
+			//std::cout << "info cp " << val << std::endl;
 			return FromTo(b, m.from[i], m.to[i], m.PieceType[i]);
 			//return ctos(m.from[i]) + ctos(m.to[i]);
 		}
 	}
 	//std::cout << "Error No Max Picked";
-	std::cout << ctos(m.from[0]) << ctos(m.to[0]) << std::endl;
+	std::cout << "bestmove " << ctos(m.from[0]) << ctos(m.to[0]) << std::endl;
 	return FromTo(b, m.from[0], m.to[0], m.PieceType[0]);
 	//return ctos(m.from[0]) + ctos(m.to[0]);
 }
