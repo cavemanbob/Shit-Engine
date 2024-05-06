@@ -91,8 +91,9 @@ void PrintBitBoard(u64 b){
 std::string ctos(int x){ // cordinate to string 54 -> e4
 	std::string StrPieces = "abcdefgh";
 	std::string r("  ");
-	r[0] = StrPieces[x/8];
-	r[1] = '0' + x%8;
+	r[0] = StrPieces[x%8];
+	r[1] = '0' + x/8 + 1;
+	//std::cout << "x " << x << " " <<  r  << std::endl;
 	return r;
 }
 
@@ -126,19 +127,24 @@ void ReadableBoard(bitboard b){
 
 
 void FenApply(bitboard* b, char *fen){
-	char *t = strtok(fen , " ");
-	if( strcmp(t,"startpos") == 0){
-		strcpy(fen, START_FEN);
-	}
+	//char *t = strtok(fen , " ");
 	*b = {}; //clean board
-
-	std::string fenstr(fen);
+	std::string fenstr;
+	if( strcmp(fen,"startpos") == 0){
+		fenstr = START_FEN;
+	}
+	else {
+		fenstr = fen; //check
+	}
 	std::string StrPieces = "RNBQKPrnbqkp";
 	int index = 56 , space=0;
 	for(char x : fenstr){
 		if(x == '/'){
 			index-=16;
 			continue;
+		}
+		else if(space == 3){
+			break;
 		}
 		else if(StrPieces.find(x) != std::string::npos && space == 0){
 			*(&(b->wr) + StrPieces.find(x)) |= 1ULL << index;
@@ -152,7 +158,7 @@ void FenApply(bitboard* b, char *fen){
 			space++;
 		}
 		else if(space==1){
-			x == 'w' ? b->key |= 1ULL << 9 : b->key ^= 1ULL << 9;
+			x == 'w' ? b->key |= 1ULL << 8 : b->key ^= 1ULL << 8;
 		}
 		else if(space==2){
 			x == 'K' ? b->key |= 1ULL << 12 :
@@ -486,7 +492,8 @@ output movegen(bitboard b, int side){
 
 
 bitboard FromTo(bitboard b, int from, int to, int piece){
-	int side = piece < 6 ? WHITE : BLACK;
+	u64 side = piece < 6 ? WHITE : BLACK;
+	b.key ^= 1ULL << 8; //swap bit
 	
 	if(piece == En_B){ // enpass
 		b.occupied ^= 1ULL << to + 8;
@@ -548,14 +555,16 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 		*(&b.wr + piece) ^= 1ULL << to;
 		*(&b.wr + QUEEN_B) ^= 1ULL << to;
 	}
-	if(piece == KING_W && from == 4 && to == 6) b = FromTo(b, 7, 5, ROOK_W);
-	if(piece == KING_W && from == 4 && to == 2) b = FromTo(b, 0, 3, ROOK_W);
-	if(piece == KING_B && from == 60 && to == 62) b = FromTo(b, 63, 61, ROOK_B);
-	if(piece == KING_B && from == 60 && to == 58) b = FromTo(b, 56, 59, ROOK_B);
-	if(piece == ROOK_W && from == 0) b.key &= ~(1ULL << 3);
-	if(piece == ROOK_W && from == 7) b.key &= ~(1ULL << 2);
-	if(piece == ROOK_B && from == 56) b.key &= ~(1ULL << 0);
-	if(piece == ROOK_B && from == 63) b.key &= ~(1ULL << 1);
+	//castle
+	if(piece == KING_W && from == 4 && to == 6) {b.key ^= 1ULL << 8;b = FromTo(b, 7, 5, ROOK_W);}
+	else if(piece == KING_W && from == 4 && to == 2) {b.key ^= 1ULL << 8;b = FromTo(b, 0, 3, ROOK_W);}
+	else if(piece == KING_B && from == 60 && to == 62) {b.key ^= 1ULL << 8;b = FromTo(b, 63, 61, ROOK_B);}
+	else if(piece == KING_B && from == 60 && to == 58) {b.key ^= 1ULL << 8;b = FromTo(b, 56, 59, ROOK_B);}
+	else if(piece == ROOK_W && from == 0) b.key &= ~(1ULL << 3);
+	else if(piece == ROOK_W && from == 7) b.key &= ~(1ULL << 2);
+	else if(piece == ROOK_B && from == 56) b.key &= ~(1ULL << 0);
+	else if(piece == ROOK_B && from == 63) b.key &= ~(1ULL << 1);
+	//enpass
 	if(piece == PAWN_B || piece == PAWN_W && abs(from / 8 - to / 8) > 1 ) {b.key &= ~(0b1111111 << 19); b.key ^= to << 19;} else b.key &= ~(0b1111111 << 19); //enpassant set key
 #ifdef DEBUG
 	b.oldsquare = from;
@@ -578,23 +587,18 @@ bitboard makemove(bitboard b, int from, int to, int piece){
 }
 */
 
-bitboard PlayerMove(bitboard b, std::string inp){
+bitboard NotationMove(bitboard b, std::string inp){
 	std::string alphabet = "abcdefgh";
-	int from = 0, to = 0, i=0;
-	if(inp[0] == '0'){
-		std::cout << "castle";
-		return b;
-	}
-	else{
-		from += alphabet.find(inp[0]);
-		from += ((int)inp[1] - '0' - 1) * 8;
-		to += alphabet.find(inp[2]);
-		to += ((int)inp[3] - '0' - 1) * 8;
-		int piece;
-		for(piece=0; piece<12; piece++)
-			if(BitCheck(*(&b.wr + piece) , from)) break;
-		return FromTo(b,from,to,piece);
-	}
+	int from = 0, to = 0;
+	from += alphabet.find(inp[0]);
+	from += ((int)inp[1] - '0' - 1) * 8;
+	to += alphabet.find(inp[2]);
+	to += ((int)inp[3] - '0' - 1) * 8;
+	int piece;
+	for(piece=0; piece<12; piece++)
+		if(BitCheck(*(&b.wr + piece) , from)) break;
+	//std::cout << "sideN " << (b.key >> 8 & 1ULL) << std::endl;
+	return FromTo(b,from,to,piece);
 }
 
 int BasicTree(bitboard b, int side, int depth, int first = 1){
@@ -688,7 +692,7 @@ float Search(bitboard b, int side, int depth, int rp = 0){
 }
 
 bitboard Next(bitboard b, int depth){
-	int side = (1ULL << 9 & b.key) ? WHITE : BLACK;
+	int side = (1ULL << 8 & b.key) ? WHITE : BLACK;
 	output m = movegen(b,side);
 	std::vector<float> Val_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;
@@ -708,6 +712,7 @@ bitboard Next(bitboard b, int depth){
 			}
 		}
 	}
+	printf("info depth %d\n",depth);
 	// Pick random max or min value between them
 	int Max_quantity = 0;
 	for(int i=0; i < Val_table.size(); i++) if(Val_table[i] == val) Max_quantity++;
@@ -784,6 +789,7 @@ void Uci(){
 
 	char text[300] = {};
 	bitboard x = {};
+	struct game _game = {};
 	FILE *fptr = fopen("f.txt", "w");
 	while(strcmp(text, "quit") != 0){
 		memset(text, 0, 300);
@@ -798,20 +804,63 @@ void Uci(){
 		if(strcmp(t, "position") == 0){
 			t = strtok(NULL, " \n");
 			FenApply(&x, t);
-		}
-		else if(strcmp(t, "go") == 0){ // U WAS HERE
+			//std::cout << "side " << (x.key >> 8 & 1ULL) << std::endl;
 			t = strtok(NULL, " \n");
-			if(std::stoi(t) < 10){
-				x = Next(x, std::stoi(t));
+			while(t){
+				if(strcmp(t, "moves") == 0){
+					t = strtok(NULL, " \n");
+					while(t){
+						x = NotationMove(x, t);	
+						t = strtok(NULL, " \n");
+					}
+				}
 			}
-			else{
-				x = Next(x, 4);
+			//std::cout << "side " << (x.key >> 8 & 1ULL) << std::endl;
+			t = strtok(NULL, " \n");
+		}
+		else if(strcmp(t, "go") == 0){
+			int Did_Next = 0;
+			t = strtok(NULL, " \n");
+			while(t){
+				if(strcmp(t, "wtime") == 0){
+					t = strtok(NULL, " \n");
+					_game.wtime = std::stoi(t);
+				}
+				else if(strcmp(t, "btime") == 0){
+					t = strtok(NULL, " \n");
+					_game.btime = std::stoi(t);
+				}
+				else if(strcmp(t, "winc") == 0){
+					t = strtok(NULL, " \n");
+					_game.winc = std::stoi(t);
+				}
+				else if(strcmp(t, "binc") == 0){
+					t = strtok(NULL, " \n");
+					_game.binc = std::stoi(t);
+				}
+				else if(strcmp(t, "movestogo") == 0){
+					t = strtok(NULL, " \n");
+					_game.movestogo = std::stoi(t);
+				}
+				else if(strcmp(t, "go") == 0){
+					t = strtok(NULL, " \n");
+					if(std::stoi(t) < 8){
+						x = Next(x, std::stoi(t));
+					}
+					else{
+						x = Next(x, 4);
+					}
+					Did_Next = 1;
+				}
+				t = strtok(NULL, " \n");
 			}
+			if(Did_Next == 0) x = Next(x, 5);
 		}
 		else if(strcmp(t, "d") == 0){
 			ReadableBoard(x);
 		}
 		else if(strcmp(t, "stop") == 0){
+			fprintf(fptr,bestmove.c_str());
 			std::cout << "bestmove " << bestmove << std::endl;
 		}
 		else if(strcmp(t, "isready") == 0){
@@ -819,6 +868,7 @@ void Uci(){
 		}
 		else if(strcmp(t, "ucinewgame") == 0){
 			x = {};
+			//x.key ^= 1ULL << 8;
 		}
 	}
 	fclose(fptr);

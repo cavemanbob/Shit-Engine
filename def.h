@@ -103,6 +103,12 @@ enum Val : int{
 
 std::string bestmove("     ");
 
-
+struct game{
+	u64 wtime;
+	u64 btime;
+	u32 winc;
+	u32 binc;
+	u32 movestogo;
+};
 
 
