@@ -193,7 +193,7 @@ void ApplyFen(bitboard *b, char *fen){
 				else{
 					piece = strchr(pieces, *(t+i)) - pieces;
 					b->occupied ^= 1ULL << sq;
-					if(isupper(piece)){ //white
+					if(piece < 6){ //white
 						b->woccupied ^= 1ULL << sq;
 						*(&(b->wr) + piece) ^= 1ULL << sq;
 					}
@@ -681,10 +681,10 @@ void Init_pestos(){
 		}
 	}
 }
-
-int Evaluate(bitboard b){ // plays for lose ???????
-	int w_val = BitCount(b.wp) * PAWN_VAL + BitCount(b.wr) * ROOK_VAL + BitCount(b.wn) * KNIGHT_VAL + BitCount(b.wb) * BISHOP_VAL + BitCount(b.wq) * QUEEN_VAL + BitCount(b.wk) * KING_VAL;
-	int b_val = BitCount(b.bp) * PAWN_VAL + BitCount(b.br) * ROOK_VAL + BitCount(b.bn) * KNIGHT_VAL + BitCount(b.bb) * BISHOP_VAL + BitCount(b.bq) * QUEEN_VAL + BitCount(b.bk) * KING_VAL;
+/*
+float Evaluate(bitboard b){ // plays for lose ???????
+	float w_val = BitCount(b.wp) * PAWN_VAL + BitCount(b.wr) * ROOK_VAL + BitCount(b.wn) * KNIGHT_VAL + BitCount(b.wb) * BISHOP_VAL + BitCount(b.wq) * QUEEN_VAL + BitCount(b.wk) * KING_VAL;
+	float b_val = BitCount(b.bp) * PAWN_VAL + BitCount(b.br) * ROOK_VAL + BitCount(b.bn) * KNIGHT_VAL + BitCount(b.bb) * BISHOP_VAL + BitCount(b.bq) * QUEEN_VAL + BitCount(b.bk) * KING_VAL;
 	//while(b.woccupied){
 		//int i, lsi = Ls1bIndex(b.woccupied);
 		//for(i=0; i < 6; i++) if(BitCheck(*(&b.wr + i),lsi))break;
@@ -700,11 +700,11 @@ int Evaluate(bitboard b){ // plays for lose ???????
 	//}
 	return w_val - b_val;
 }
+*/
 
-/*
-int Evaluate(bitboard b){
-	int mg[2] = {}; // black 0 white 1
-	int eg[2] = {};
+float Evaluate(bitboard b){
+	float mg[2] = {}; // black 0 white 1
+	float eg[2] = {};
 	
 	int GamePhase = 0;
 	
@@ -720,55 +720,26 @@ int Evaluate(bitboard b){
 		int i, lsi = Ls1bIndex(b.boccupied);
 		for(i=0; i < 6; i++) if(BitCheck(*(&b.br + i),lsi))break;
 		b.boccupied &= b.boccupied - 1;
-		mg[WHITE] += mg_table[i][lsi];
-		eg[WHITE] += eg_table[i][lsi];
+		mg[BLACK] += mg_table[i][lsi];
+		eg[BLACK] += eg_table[i][lsi];
 		GamePhase += gamephaseInc[i];
 	}	
 
-	int mgScore = mg[WHITE] - mg[BLACK];
-	int egScore = eg[WHITE] - eg[BLACK];
+	float mgScore = mg[WHITE] - mg[BLACK];
+	float egScore = eg[WHITE] - eg[BLACK];
 	int mgPhase = GamePhase;
 	if(mgPhase > 24) mgPhase = 24; // promotion
 	int egPhase = 24 - mgPhase;
 	//std::cout << mgScore << " " << mgPhase << " " << egScore << " " << egPhase << std::endl;
+	//std::cout << "val " <<  (mgScore * mgPhase + egScore * egPhase) / 24 << std::endl;
 	return (mgScore * mgPhase + egScore * egPhase) / 24;
-}*/
-/*int eval()
-{
-    int mg[2];
-    int eg[2];
-    int gamePhase = 0;
-
-    mg[WHITE] = 0;
-    mg[BLACK] = 0;
-    eg[WHITE] = 0;
-    eg[BLACK] = 0;
-
-  //   evaluate each piece
-    for (int sq = 0; sq < 64; ++sq) {
-        int pc = board[sq];
-        if (pc != EMPTY) {
-            mg[PCOLOR(pc)] += mg_table[pc][sq];
-            eg[PCOLOR(pc)] += eg_table[pc][sq];
-            gamePhase += gamephaseInc[pc];
-        }
-    }
-
-//     tapered eval 
-    int mgScore = mg[side2move] - mg[OTHER(side2move)];
-    int egScore = eg[side2move] - eg[OTHER(side2move)];
-    int mgPhase = gamePhase;
-    if (mgPhase > 24) mgPhase = 24;  //in case of early promotion 
-    int egPhase = 24 - mgPhase;
-    return (mgScore * mgPhase + egScore * egPhase) / 24;
 }
-*/
 
 float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
 	Node_Total++;
 	//printf("%d\n",depth);
-	if(b.wk == 0) return LONG_MIN + INT_MAX;
-	if(b.bk == 0) return LONG_MAX - INT_MAX;
+	if(b.wk == 0) return INT_MIN;
+	if(b.bk == 0) return INT_MAX;
 	if(depth == 0)
 		return Evaluate(b);
 	if(side == WHITE){
@@ -822,10 +793,11 @@ float Search(bitboard b, int side, int depth, int rp = 0){
 }*/
 
 bitboard Next(bitboard b, int depth){
+	//for(int i =0; i < 15; i++) PrintBitBoard(*(&b.occupied + i));
 	printf("info depth %d\n",depth);
 	Node_Total = 0;
 	int side = (1ULL << 8 & b.key) ? WHITE : BLACK;
-	std::cout << "side " << side << std::endl; 
+	std::cout << "side " << side << std::endl;
 	output m = movegen(b,side);
 	std::vector<float> Val_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;

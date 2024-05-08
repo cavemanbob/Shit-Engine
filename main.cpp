@@ -54,5 +54,7 @@ int main(){
 			printf("%2d, ",i * 8 + j);
 		}
 	}*/
+
+
 	return 0;
 }
