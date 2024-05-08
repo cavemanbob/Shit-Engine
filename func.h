@@ -176,7 +176,9 @@ void ApplyFen(bitboard *b, char *fen){
 	*b = {};
 	if(strncmp(fen, "startpos", 8) == 0) fen = START_FEN;
 	char pieces[] = "RNBQKPrnbqkp";
-	char *t = strtok(fen, " \n");
+	char strfen[200];
+	strcpy(strfen, fen);
+	char *t = strtok(strfen, " \n");
 	int space = 0, piece = 0, sq = 56;
 	while(t){
 		if(space == 0){
@@ -191,7 +193,6 @@ void ApplyFen(bitboard *b, char *fen){
 				else{
 					piece = strchr(pieces, *(t+i)) - pieces;
 					b->occupied ^= 1ULL << sq;
-					std::cout << piece << std::endl;
 					if(isupper(piece)){ //white
 						b->woccupied ^= 1ULL << sq;
 						*(&(b->wr) + piece) ^= 1ULL << sq;
@@ -204,7 +205,6 @@ void ApplyFen(bitboard *b, char *fen){
 				i++;
 				sq++;
 			}
-			for(int m = 0; m < 12; m++)PrintBitBoard(*(&b->occupied + m));
 			space++;
 		}
 		else if(space == 1){
@@ -646,19 +646,6 @@ bitboard makemove(bitboard b, int from, int to, int piece){
 }
 */
 
-bitboard NotationMove(bitboard b, std::string inp){
-	std::string alphabet = "abcdefgh";
-	int from = 0, to = 0;
-	from += alphabet.find(inp[0]);
-	from += ((int)inp[1] - '0' - 1) * 8;
-	to += alphabet.find(inp[2]);
-	to += ((int)inp[3] - '0' - 1) * 8;
-	int piece;
-	for(piece=0; piece<12; piece++)
-		if(BitCheck(*(&b.wr + piece) , from)) break;
-	//std::cout << "sideN " << (b.key >> 8 & 1ULL) << std::endl;
-	return FromTo(b,from,to,piece);
-}
 
 int BasicTree(bitboard b, int side, int depth, int first = 1){
 	//int x;
@@ -924,6 +911,24 @@ void GameLoop(){
 }*/
 
 
+bitboard NotationMove(bitboard b, char *inp){
+	//std::cout << "inp " << inp << std::endl;
+	char alphabet[] = "abcdefgh";
+	int from = 0, to = 0;
+	from += strchr(alphabet, inp[0]) - alphabet;
+	from += ((int)inp[1] - '0' - 1) * 8;
+	//to += alphabet.find(inp[2]);
+	to += strchr(alphabet, inp[2]) - alphabet;
+	to += ((int)inp[3] - '0' - 1) * 8;
+	int piece;
+	for(piece=0; piece<12; piece++)
+		if(BitCheck(*(&b.wr + piece) , from)) 
+			break;
+	//std::cout << "from " << from << " to " << to << " piece " << piece;
+	//std::cout << "sideN " << (b.key >> 8 & 1ULL) << std::endl;
+	return FromTo(b,from,to,piece);
+}
+
 void Uci(){ // fix str position
 	InitPawnAttacks();
 	InitPawnPushes();
@@ -953,15 +958,17 @@ void Uci(){ // fix str position
 		}
 		else if(strcmp(t, "position") == 0){
 			t = strtok(NULL, "\n"); // get all str
-			std::cout << t << std::endl;
 			ApplyFen(&x, t);
 			t = strchr(t, 'm');
-			t = strtok(NULL , " \n");
-			while(t){
-				x = NotationMove(x, t);	
-				t = strtok(NULL, " \n");
+			if(t){ // there are "moves" str
+				t += 6;
+				t = strtok(t, " \n");
+				while(t){
+					x = NotationMove(x, t);	
+					t = strtok(NULL, " \n");
+				}
 			}
-			t = strtok(NULL, " \n");
+			//t = strtok(NULL, " \n");
 		}
 		else if(strcmp(t, "go") == 0){
 			int Did_Next = 0;
