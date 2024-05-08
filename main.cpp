@@ -17,6 +17,7 @@ void printRemainingStack() {
 int main(){
 	/*
 	InitPawnAttacks();
+	n
 	InitPawnPushes();
 	InitKnightAttacks();
 	InitKingAttacks();
@@ -40,6 +41,18 @@ int main(){
 	std::cout << "S " << m.from.size() << std::endl;*/
 	//GameLoop();
 	Uci();
-	
+/*	for(int i = 0; i < 8; i++){
+		std::cout << std::endl;
+		for(int j = 0; j < 8; j++){
+			printf("%2d, ",FLIP(i * 8 + j));
+		}
+	}
+	printf("\n\n");
+	for(int i = 0; i < 8; i++){
+		std::cout << std::endl;
+		for(int j = 0; j < 8; j++){
+			printf("%2d, ",i * 8 + j);
+		}
+	}*/
 	return 0;
 }

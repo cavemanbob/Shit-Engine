@@ -125,7 +125,7 @@ void ReadableBoard(bitboard b){
 	std::cout << "  A B C D E F G H\n\n";
 }
 
-
+/*
 void FenApply(bitboard* b, char *fen){
 	//char *t = strtok(fen , " ");
 	*b = {}; //clean board
@@ -134,8 +134,10 @@ void FenApply(bitboard* b, char *fen){
 		fenstr = START_FEN;
 	}
 	else {
-		fenstr = fen; //check
+		std::string tfenstr(fen); //check
+		fenstr = tfenstr;
 	}
+	std::cout << std::endl << fenstr << std::endl;
 	std::string StrPieces = "RNBQKPrnbqkp";
 	int index = 56 , space=0;
 	for(char x : fenstr){
@@ -158,17 +160,73 @@ void FenApply(bitboard* b, char *fen){
 			space++;
 		}
 		else if(space==1){
-			x == 'w' ? b->key |= 1ULL << 8 : b->key ^= 1ULL << 8;
+			x == 'w' ? b->key |= 1ULL << 8 : b->key &= ~(1ULL << 8);
 		}
 		else if(space==2){
 			x == 'K' ? b->key |= 1ULL << 12 :
 			x == 'Q' ? b->key |= 1ULL << 11 :
 			x == 'k' ? b->key |= 1ULL << 10 :
 			x == 'q' ? b->key |= 1ULL << 9 : 1;
-		}
+			}
 		index++;
 	}
 }
+*/
+void ApplyFen(bitboard *b, char *fen){
+	*b = {};
+	if(strncmp(fen, "startpos", 8) == 0) fen = START_FEN;
+	char pieces[] = "RNBQKPrnbqkp";
+	char *t = strtok(fen, " \n");
+	int space = 0, piece = 0, sq = 56;
+	while(t){
+		if(space == 0){
+			int i = 0;
+			while(*(t + i) != 0){
+				if(*(t + i) == '/'){
+					sq -= 17;
+				}
+				else if(isdigit(*(t + i))){
+					sq += *(t + i) - 49;
+				}
+				else{
+					piece = strchr(pieces, *(t+i)) - pieces;
+					b->occupied ^= 1ULL << sq;
+					std::cout << piece << std::endl;
+					if(isupper(piece)){ //white
+						b->woccupied ^= 1ULL << sq;
+						*(&(b->wr) + piece) ^= 1ULL << sq;
+					}
+					else{ //black
+						b->boccupied ^= 1ULL << sq;
+						*(&(b->wr) + piece) ^= 1ULL << sq;
+					}
+				}
+				i++;
+				sq++;
+			}
+			for(int m = 0; m < 12; m++)PrintBitBoard(*(&b->occupied + m));
+			space++;
+		}
+		else if(space == 1){
+			if(*t == 'w') b->key ^= 1ULL << 8; 
+		}
+		else if(space == 2){
+			int i = 0;
+			while(*(t + i) != 0){
+				*(t + i) == 'K' ? b->key |= 1ULL << 12 :
+				*(t + i) == 'Q' ? b->key |= 1ULL << 11 :
+				*(t + i) == 'k' ? b->key |= 1ULL << 10 :
+				*(t + i) == 'q' ? b->key |= 1ULL << 9 : 1;
+				i++;
+			}
+		}
+		else if(space == 5){
+			b->key |= std::stoi(t);
+		}
+		t = strtok(NULL, " \n");
+	}
+}
+
 
 void InitPawnAttacks(){
 	u64 b = 5, eb = 351843720888320ULL, c = 0xFF, ec = 0xFF0000000000;
@@ -209,6 +267,7 @@ void InitKnightAttacks(){
 		if(i%8 > 1 && i < 56) c |= 1ULL << i + NORTH + WEST + WEST;
 		if(i%8 < 7 && i < 48) c |= 1ULL << i + NORTH + NORTH + EAST;
 		if(i%8 < 6 && i < 56) c |= 1ULL << i + NORTH + EAST + EAST;
+    eg_pawn_table,
 		Pnk_attacks[2][i] = c;
 	}
 }
@@ -623,69 +682,138 @@ int BasicTree(bitboard b, int side, int depth, int first = 1){
 	}
 	return r;
 }
-/*
-float Evaluate(bitboard b){
-	float w_val = BitCount(b.wp) * PAWN_VAL + BitCount(b.wr) * ROOK_VAL + BitCount(b.wn) * KNIGHT_VAL + BitCount(b.wb) * BISHOP_VAL + BitCount(b.wq) * QUEEN_VAL + BitCount(b.wk) * KING_VAL;
-	float b_val = BitCount(b.bp) * PAWN_VAL + BitCount(b.br) * ROOK_VAL + BitCount(b.bn) * KNIGHT_VAL + BitCount(b.bb) * BISHOP_VAL + BitCount(b.bq) * QUEEN_VAL + BitCount(b.bk) * KING_VAL;
-	return w_val - b_val;
+
+
+void Init_pestos(){
+	for(int sq=0; sq < 64; sq++){ // sq = square
+		for(int p = 0; p < 6; p++){ // p = piece
+			mg_table[p][sq] = mg_value[p] + mg_pesto_table[p][sq];
+			eg_table[p][sq] = eg_value[p] + eg_pesto_table[p][sq];
+			mg_table[p + 6][sq] = mg_value[p] + mg_pesto_table[p][FLIP(sq)];
+			eg_table[p + 6][sq] = eg_value[p] + eg_pesto_table[p][FLIP(sq)];
+		}
+	}
 }
-*/
-float Evaluate(bitboard b){
-	float w_val = BitCount(b.wp) * PAWN_VAL + BitCount(b.wr) * ROOK_VAL + BitCount(b.wn) * KNIGHT_VAL + BitCount(b.wb) * BISHOP_VAL + BitCount(b.wq) * QUEEN_VAL + BitCount(b.wk) * KING_VAL;
-	float b_val = BitCount(b.bp) * PAWN_VAL + BitCount(b.br) * ROOK_VAL + BitCount(b.bn) * KNIGHT_VAL + BitCount(b.bb) * BISHOP_VAL + BitCount(b.bq) * QUEEN_VAL + BitCount(b.bk) * KING_VAL;
-	while(b.woccupied){
-		int i, lsi = Ls1bIndex(b.woccupied);
-		for(i=0; i < 6; i++) if(BitCheck(b.woccupied,lsi))break;
-		b.woccupied &= b.woccupied - 1;
-		w_val += Pos_Val_Table[lsi + 64 * i];
-	}
-	while(b.boccupied){
-		int i, lsi = Ls1bIndex(b.boccupied);
-		for(i=0; i < 6; i++) if(BitCheck(b.boccupied,lsi))break;
-		b.boccupied &= b.boccupied - 1;
-		b_val -= Pos_Val_Table[64 - lsi + 64 * i];
-	}
+
+int Evaluate(bitboard b){ // plays for lose ???????
+	int w_val = BitCount(b.wp) * PAWN_VAL + BitCount(b.wr) * ROOK_VAL + BitCount(b.wn) * KNIGHT_VAL + BitCount(b.wb) * BISHOP_VAL + BitCount(b.wq) * QUEEN_VAL + BitCount(b.wk) * KING_VAL;
+	int b_val = BitCount(b.bp) * PAWN_VAL + BitCount(b.br) * ROOK_VAL + BitCount(b.bn) * KNIGHT_VAL + BitCount(b.bb) * BISHOP_VAL + BitCount(b.bq) * QUEEN_VAL + BitCount(b.bk) * KING_VAL;
+	//while(b.woccupied){
+		//int i, lsi = Ls1bIndex(b.woccupied);
+		//for(i=0; i < 6; i++) if(BitCheck(*(&b.wr + i),lsi))break;
+		//b.woccupied &= b.woccupied - 1;
+		//w_val += Pos_Val_Table[64 - lsi + 64 * i];
+		//std::cout << "id " << 64 - lsi + 64 * i << std::endl;
+	//}
+	//while(b.boccupied){
+		//int i, lsi = Ls1bIndex(b.boccupied);
+		//for(i=0; i < 6; i++) if(BitCheck(*(&b.br + i),lsi))break;
+		//b.boccupied &= b.boccupied - 1;
+		//b_val += Pos_Val_Table[lsi + 64 * i - lsi%8 + 8 - lsi%8];
+	//}
 	return w_val - b_val;
 }
 
+/*
+int Evaluate(bitboard b){
+	int mg[2] = {}; // black 0 white 1
+	int eg[2] = {};
+	
+	int GamePhase = 0;
+	
+	while(b.woccupied){
+		int i, lsi = Ls1bIndex(b.woccupied);
+		for(i=0; i < 6; i++) if(BitCheck(*(&b.wr + i),lsi))break;
+		b.woccupied &= b.woccupied - 1;
+		mg[WHITE] += mg_table[i][lsi];
+		eg[WHITE] += eg_table[i][lsi];
+		GamePhase += gamephaseInc[i];
+	}		
+	while(b.boccupied){
+		int i, lsi = Ls1bIndex(b.boccupied);
+		for(i=0; i < 6; i++) if(BitCheck(*(&b.br + i),lsi))break;
+		b.boccupied &= b.boccupied - 1;
+		mg[WHITE] += mg_table[i][lsi];
+		eg[WHITE] += eg_table[i][lsi];
+		GamePhase += gamephaseInc[i];
+	}	
+
+	int mgScore = mg[WHITE] - mg[BLACK];
+	int egScore = eg[WHITE] - eg[BLACK];
+	int mgPhase = GamePhase;
+	if(mgPhase > 24) mgPhase = 24; // promotion
+	int egPhase = 24 - mgPhase;
+	//std::cout << mgScore << " " << mgPhase << " " << egScore << " " << egPhase << std::endl;
+	return (mgScore * mgPhase + egScore * egPhase) / 24;
+}*/
+/*int eval()
+{
+    int mg[2];
+    int eg[2];
+    int gamePhase = 0;
+
+    mg[WHITE] = 0;
+    mg[BLACK] = 0;
+    eg[WHITE] = 0;
+    eg[BLACK] = 0;
+
+  //   evaluate each piece
+    for (int sq = 0; sq < 64; ++sq) {
+        int pc = board[sq];
+        if (pc != EMPTY) {
+            mg[PCOLOR(pc)] += mg_table[pc][sq];
+            eg[PCOLOR(pc)] += eg_table[pc][sq];
+            gamePhase += gamephaseInc[pc];
+        }
+    }
+
+//     tapered eval 
+    int mgScore = mg[side2move] - mg[OTHER(side2move)];
+    int egScore = eg[side2move] - eg[OTHER(side2move)];
+    int mgPhase = gamePhase;
+    if (mgPhase > 24) mgPhase = 24;  //in case of early promotion 
+    int egPhase = 24 - mgPhase;
+    return (mgScore * mgPhase + egScore * egPhase) / 24;
+}
+*/
 
 float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
 	Node_Total++;
 	//printf("%d\n",depth);
-	if(b.wk == 0) return FLT_MIN;
-	if(b.bk == 0) return FLT_MAX;
+	if(b.wk == 0) return LONG_MIN + INT_MAX;
+	if(b.bk == 0) return LONG_MAX - INT_MAX;
 	if(depth == 0)
 		return Evaluate(b);
 	if(side == WHITE){
-		float val = -1 * INT_MAX;
+		float val = INT_MIN;
 		output m = movegen(b, side);
 		for(int i=0; i < m.from.size(); i++){
-			val = max(val, alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, alpha, beta, BLACK));
+			val = std::max(val, alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, alpha, beta, BLACK));
 			if (val > beta){
 				break;
 			}
-			alpha = max(alpha, val);
+			alpha = std::max(alpha, val);
 		}
 		return val;
 	}
 	else{
-		float val = +1 * INT_MAX;
+		float val = INT_MAX;
 		output m = movegen(b, side);
 		for(int i=0; i < m.from.size(); i++){
-			val = min(val, alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, alpha, beta, WHITE));
+			val = std::min(val, alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, alpha, beta, WHITE));
 			if (val < alpha){
 				break;
 			}
-			beta = max(beta, val);
+			beta = std::min(beta, val);
 		}
 		return val;
 	}
 
 }
-
+/*
 float Search(bitboard b, int side, int depth, int rp = 0){
-	if(b.wk == 0) return FLT_MIN;
-	if(b.bk == 0) return FLT_MAX;
+	if(b.wk == 0) return LONG_MIN;
+	if(b.bk == 0) return LONG_MAX;
 	if(depth == 0) {return Evaluate(b);} // Evaluate -> sum of pieces values
 	output m = movegen(b, side); // pick the possible moves
 	float val = INT_MAX * (side == WHITE ? -1 : +1);
@@ -704,12 +832,13 @@ float Search(bitboard b, int side, int depth, int rp = 0){
 		}
 	}
 	return val;
-}
+}*/
 
 bitboard Next(bitboard b, int depth){
 	printf("info depth %d\n",depth);
 	Node_Total = 0;
 	int side = (1ULL << 8 & b.key) ? WHITE : BLACK;
+	std::cout << "side " << side << std::endl; 
 	output m = movegen(b,side);
 	std::vector<float> Val_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;
@@ -795,7 +924,7 @@ void GameLoop(){
 }*/
 
 
-void Uci(){
+void Uci(){ // fix str position
 	InitPawnAttacks();
 	InitPawnPushes();
 	InitKnightAttacks();
@@ -805,6 +934,7 @@ void Uci(){
 	FindMagics(RelevantBishopMask, BishopMagics, BishopBase, BISHOP);
 	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
 	rand64();
+	Init_pestos();
 
 
 	char text[300] = {};
@@ -821,22 +951,17 @@ void Uci(){
 			printf("id author Efe Burak Ostundag <Cavemanbob>\n");
 			printf("uciok\n");
 		}
-		if(strcmp(t, "position") == 0){
-			t = strtok(NULL, " \n");
-			FenApply(&x, t);
-			//std::cout << "side " << (x.key >> 8 & 1ULL) << std::endl;
-			t = strtok(NULL, " \n");
+		else if(strcmp(t, "position") == 0){
+			t = strtok(NULL, "\n"); // get all str
+			std::cout << t << std::endl;
+			ApplyFen(&x, t);
+			t = strchr(t, 'm');
+			t = strtok(NULL , " \n");
 			while(t){
-				if(strcmp(t, "moves") == 0){
-					t = strtok(NULL, " \n");
-					while(t){
-						x = NotationMove(x, t);	
-						t = strtok(NULL, " \n");
-					}
-				}
-			t = strtok(NULL, " \n");
+				x = NotationMove(x, t);	
+				t = strtok(NULL, " \n");
 			}
-			//std::cout << "side " << (x.key >> 8 & 1ULL) << std::endl;
+			t = strtok(NULL, " \n");
 		}
 		else if(strcmp(t, "go") == 0){
 			int Did_Next = 0;
@@ -889,6 +1014,16 @@ void Uci(){
 		else if(strcmp(t, "ucinewgame") == 0){
 			x = {};
 			//x.key ^= 1ULL << 8;
+		}
+		else if(strcmp(t, "eval") == 0){
+			t = strtok(NULL, " \n");
+			if(t){
+				ApplyFen(&x, t);
+				std::cout << "value " << Evaluate(x) << std::endl;
+			}
+			else{
+				std::cout << "value " << Evaluate(x) << std::endl;
+			}	
 		}
 	}
 	fclose(fptr);
