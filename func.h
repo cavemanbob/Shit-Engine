@@ -208,7 +208,8 @@ void ApplyFen(bitboard *b, char *fen){
 			space++;
 		}
 		else if(space == 1){
-			if(*t == 'w') b->key ^= 1ULL << 8; 
+			if(*t == 'w') b->key ^= 1ULL << 8;
+			space++;	
 		}
 		else if(space == 2){
 			int i = 0;
@@ -219,9 +220,17 @@ void ApplyFen(bitboard *b, char *fen){
 				*(t + i) == 'q' ? b->key |= 1ULL << 9 : 1;
 				i++;
 			}
+			space++;	
+		}
+		else if(space == 3){
+			space++;
+		}
+		else if(space == 4){
+			space++;
 		}
 		else if(space == 5){
 			b->key |= std::stoi(t);
+			space++;	
 		}
 		t = strtok(NULL, " \n");
 	}
@@ -326,7 +335,7 @@ void FindMagics(u64* mask, u64* magictable, u64 lookup[][4096], int piece){
 		u64 km[4096], maskcom[4096], shiftid = BitCount(mask[square]), magic;
 		u8 checkbit ;
 		//fill maskcom
-
+		
 		for(int permid=0; permid < pow(2, shiftid); permid++){
 			u64 c = permid, l = 0ULL, m = mask[square]; // c to l based m
 			u64 t = BitCount(c);
@@ -456,17 +465,18 @@ output movegenx(bitboard b, int side){
 */
 
 
-output movegen(bitboard b, int side){
+output movegen(bitboard b){
+	int side = b.key >> 8 & 1ULL;
 	//note use pawn pushes not in while
 	u64 pcw = 255ULL << 16;
 	u64 pcb = 255ULL << 40;
 	u64 eps = (b.key >> 19) & 0b1111111;
 	//std::cout << "eps " << eps << std::endl;
-	output r;
+	output r = {};
 	const u64 empty = ~b.occupied;
 	const u64 emptyW = ~b.woccupied;
 	const u64 emptyB = ~b.boccupied;
-
+	if(b.wk == 0 || b.bk == 0){return r;}
 	u64 targets = side == WHITE ? b.woccupied : b.boccupied;
 	if(side == WHITE){
 		while(targets){
@@ -475,8 +485,8 @@ output movegen(bitboard b, int side){
 			if(j == 5){ //pawn
 				u64 ways = (Pnk_attacks[0][i] & b.boccupied) | ( 1ULL << (i + 8) & ~b.occupied); //push
 				if(i < 16 && BitCheck(b.occupied, i + 8) == 0 && BitCheck(b.occupied, i + 16) == 0 ) ways |= 1ULL << i + 16; //double push
-				if(i + 1 == eps){ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //right enpass
-				if(i - 1 == eps){ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //left enpass
+				if(i + 1 == eps && i%8 != 7){ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //right enpass
+				if(i - 1 == eps && i%8 != 0){ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //left enpass
 				while(ways){r.from.push_back(i);r.to.push_back(Ls1bIndex(ways));ways &= ways - 1;r.PieceType.push_back(PAWN_W);}
 			}
 			else if(j == 1){ //knight
@@ -541,10 +551,19 @@ output movegen(bitboard b, int side){
 		}
 	}
 	//castle
-	if(b.key & 1ULL << 3 && BitCheck(b.occupied,5) == 0 && BitCheck(b.occupied,6) == 0) {r.from.push_back(4); r.to.push_back(6); r.PieceType.push_back(KING_W);} 
-	if(b.key & 1ULL << 2 && BitCheck(b.occupied,1) == 0 && BitCheck(b.occupied,2) == 0 && BitCheck(b.occupied, 3) == 0) {r.from.push_back(4); r.to.push_back(2); r.PieceType.push_back(KING_W);} 
-	if(b.key & 1ULL << 1 && BitCheck(b.occupied,61) == 0 && BitCheck(b.occupied,62) == 0) {r.from.push_back(60); r.to.push_back(62); r.PieceType.push_back(KING_W);} 
-	if(b.key & 1ULL << 0 && BitCheck(b.occupied,57) == 0 && BitCheck(b.occupied,58) == 0 && BitCheck(b.occupied, 59) == 0) {r.from.push_back(60); r.to.push_back(58); r.PieceType.push_back(KING_W);} 
+	//printf("%d %d %d %d %d \n",BitCheck(b.key, 12) , BitCheck(b.occupied,5) == 0 , BitCheck(b.occupied,6) == 0 , BitCheck(b.wr,7) , BitCheck(b.wk,4));
+	if(BitCheck(b.key, 12) && BitCheck(b.occupied,5) == 0 && BitCheck(b.occupied,6) == 0 && BitCheck(b.wr,7) && BitCheck(b.wk,4)){
+		r.from.push_back(4); r.to.push_back(6); r.PieceType.push_back(KING_W);
+	} //S W
+	if(BitCheck(b.key, 11) && BitCheck(b.occupied,1) == 0 && BitCheck(b.occupied,2) == 0 && BitCheck(b.occupied, 3) == 0 && BitCheck(b.wr,0) && BitCheck(b.wk,4)){
+		r.from.push_back(4); r.to.push_back(2); r.PieceType.push_back(KING_W);
+	} //L W
+	if(BitCheck(b.key, 10) && BitCheck(b.occupied,61) == 0 && BitCheck(b.occupied,62) == 0 && BitCheck(b.wr,64) && BitCheck(b.wk,4)){
+		r.from.push_back(60); r.to.push_back(62); r.PieceType.push_back(KING_W);
+	} //S B
+	if(BitCheck(b.key, 9) && BitCheck(b.occupied,57) == 0 && BitCheck(b.occupied,58) == 0 && BitCheck(b.occupied, 59) == 0 && BitCheck(b.wr,56) && BitCheck(b.wk,4)){
+		r.from.push_back(60); r.to.push_back(58); r.PieceType.push_back(KING_W);
+	} //L B
 	
 	return r;
 }
@@ -615,11 +634,24 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 		*(&b.wr + QUEEN_B) ^= 1ULL << to;
 	}
 	//castle
-	if(piece == KING_W && from == 4 && to == 6) {b.key ^= 1ULL << 8;b = FromTo(b, 7, 5, ROOK_W);}
-	else if(piece == KING_W && from == 4 && to == 2) {b.key ^= 1ULL << 8;b = FromTo(b, 0, 3, ROOK_W);}
-	else if(piece == KING_B && from == 60 && to == 62) {b.key ^= 1ULL << 8;b = FromTo(b, 63, 61, ROOK_B);}
-	else if(piece == KING_B && from == 60 && to == 58) {b.key ^= 1ULL << 8;b = FromTo(b, 56, 59, ROOK_B);}
-	else if(piece == ROOK_W && from == 0) b.key &= ~(1ULL << 3);
+	if(piece == KING_W && from == 4 && to == 6) {
+		b.key ^= 1ULL << 8; //swap turn
+		b = FromTo(b, 7, 5, ROOK_W);
+	}
+	else if(piece == KING_W && from == 4 && to == 2){
+		b.key ^= 1ULL << 8;
+		b = FromTo(b, 0, 3, ROOK_W);
+	}
+	else if(piece == KING_B && from == 60 && to == 62) {
+		b.key ^= 1ULL << 8;
+		b = FromTo(b, 63, 61, ROOK_B);
+	}
+	else if(piece == KING_B && from == 60 && to == 58){
+		b.key ^= 1ULL << 8;
+		b = FromTo(b, 56, 59, ROOK_B);
+	}
+	// no castle when rook moved
+	if(piece == ROOK_W && from == 0) b.key &= ~(1ULL << 3);
 	else if(piece == ROOK_W && from == 7) b.key &= ~(1ULL << 2);
 	else if(piece == ROOK_B && from == 56) b.key &= ~(1ULL << 0);
 	else if(piece == ROOK_B && from == 63) b.key &= ~(1ULL << 1);
@@ -630,44 +662,19 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 #endif
 	return b;
 }
-/*
-bitboard makemove(bitboard b, int from, int to, int piece){
-	int side = piece < 6 ? WHITE : BLACK;
-	if(piece == En_W){ // del pawn
-
-	}
-	else if(piece == En_B){ // del pawn
-
-	}
-	// Capture
-	if( side == WHITE && BitCheck(b.boccupied)){
-
-	}
-}
-*/
 
 
-int BasicTree(bitboard b, int side, int depth, int first = 1){
-	//int x;
-	//scanf("%d",&x);
-	//if(depth == 0){PrintBitBoard(b.occupied);PrintBitBoard(b.woccupied); PrintBitBoard(b.boccupied); PrintBitBoard(b.wr);ReadableBoard(b);}
-	if(depth == 0){ReadableBoard(b);}
+int Perft(bitboard b, int depth){
+	if(b.wk == 0 || b.bk == 0) {return 0;}
 	if(depth == 0) return 1;
-	output m = movegen(b, side);
-	int r = 0;
-	
-	if(1){
-		for(int i=0; i<m.from.size(); i++){
-			r += (side == WHITE) ? BasicTree(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), BLACK, depth - 1, 0) : BasicTree(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), WHITE, depth - 1, 0);
-		}
+	output m = movegen(b);
+	int MoveCount = 0;
+	for(int i=0; i < m.from.size(); i++){
+		//printf("%s%s: ",ctos(m.from[i]),ctos(m.to[i]));
+		//std::cout << ctos(m.from[i]) << ctos(m.to[i]) << << std::endl;
+		MoveCount += Perft(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1);
 	}
-	else{
-		for(int i=0; i<m.from.size(); i++){
-			std::cout << m.from[i] << " - " << m.to[i] << "  " 
-			<< ((side == WHITE) ? BasicTree(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), BLACK, depth - 1,0) : BasicTree(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), WHITE, depth - 1,0)) << std::endl;
-		}
-	}
-	return r;
+	return MoveCount;
 }
 
 
@@ -681,26 +688,6 @@ void Init_pestos(){
 		}
 	}
 }
-/*
-float Evaluate(bitboard b){ // plays for lose ???????
-	float w_val = BitCount(b.wp) * PAWN_VAL + BitCount(b.wr) * ROOK_VAL + BitCount(b.wn) * KNIGHT_VAL + BitCount(b.wb) * BISHOP_VAL + BitCount(b.wq) * QUEEN_VAL + BitCount(b.wk) * KING_VAL;
-	float b_val = BitCount(b.bp) * PAWN_VAL + BitCount(b.br) * ROOK_VAL + BitCount(b.bn) * KNIGHT_VAL + BitCount(b.bb) * BISHOP_VAL + BitCount(b.bq) * QUEEN_VAL + BitCount(b.bk) * KING_VAL;
-	//while(b.woccupied){
-		//int i, lsi = Ls1bIndex(b.woccupied);
-		//for(i=0; i < 6; i++) if(BitCheck(*(&b.wr + i),lsi))break;
-		//b.woccupied &= b.woccupied - 1;
-		//w_val += Pos_Val_Table[64 - lsi + 64 * i];
-		//std::cout << "id " << 64 - lsi + 64 * i << std::endl;
-	//}
-	//while(b.boccupied){
-		//int i, lsi = Ls1bIndex(b.boccupied);
-		//for(i=0; i < 6; i++) if(BitCheck(*(&b.br + i),lsi))break;
-		//b.boccupied &= b.boccupied - 1;
-		//b_val += Pos_Val_Table[lsi + 64 * i - lsi%8 + 8 - lsi%8];
-	//}
-	return w_val - b_val;
-}
-*/
 
 float Evaluate(bitboard b){
 	float mg[2] = {}; // black 0 white 1
@@ -744,7 +731,7 @@ float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
 		return Evaluate(b);
 	if(side == WHITE){
 		float val = INT_MIN;
-		output m = movegen(b, side);
+		output m = movegen(b);
 		for(int i=0; i < m.from.size(); i++){
 			val = std::max(val, alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, alpha, beta, BLACK));
 			if (val > beta){
@@ -756,7 +743,7 @@ float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
 	}
 	else{
 		float val = INT_MAX;
-		output m = movegen(b, side);
+		output m = movegen(b);
 		for(int i=0; i < m.from.size(); i++){
 			val = std::min(val, alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, alpha, beta, WHITE));
 			if (val < alpha){
@@ -768,40 +755,19 @@ float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
 	}
 
 }
-/*
-float Search(bitboard b, int side, int depth, int rp = 0){
-	if(b.wk == 0) return LONG_MIN;
-	if(b.bk == 0) return LONG_MAX;
-	if(depth == 0) {return Evaluate(b);} // Evaluate -> sum of pieces values
-	output m = movegen(b, side); // pick the possible moves
-	float val = INT_MAX * (side == WHITE ? -1 : +1);
-	//int p = 0;	
-	for(int i=0; i < m.from.size(); i++){ // for each move
-		float t = Search(FromTo(b, m.from[i], m.to[i], m.PieceType[i]) , (side == WHITE) ? BLACK : WHITE , depth - 1); // rescuative loop
-		if (side == WHITE){ // find max
-			if(t > val){
-				val = t;
-			}
-		}
-		else{
-			if(t < val){ // find min
-				val = t;
-			}
-		}
-	}
-	return val;
-}*/
 
 bitboard Next(bitboard b, int depth){
 	//for(int i =0; i < 15; i++) PrintBitBoard(*(&b.occupied + i));
 	printf("info depth %d\n",depth);
 	Node_Total = 0;
 	int side = (1ULL << 8 & b.key) ? WHITE : BLACK;
-	std::cout << "side " << side << std::endl;
-	output m = movegen(b,side);
+	//std::cout << "side " << side << std::endl;
+	output m = movegen(b);
+	//std::cout << "possible moves count: " << m.from.size() << std::endl;
 	std::vector<float> Val_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;
 	for(int i=0; i < m.from.size(); i++){
+		//ReadableBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]));
 		if(side == WHITE){
 			//float alp = Search(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), BLACK, depth-1);
 			float alp = alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, INT_MIN, INT_MAX, BLACK);
@@ -818,6 +784,10 @@ bitboard Next(bitboard b, int depth){
 				val = alp;
 			}
 		}
+	}
+	for(int i=0; i < m.from.size(); i++){
+		ReadableBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]));
+		printf("val %f\n",Evaluate(FromTo(b, m.from[i], m.to[i], m.PieceType[i])));
 	}
 	// Pick random max or min value between them
 	int Max_quantity = 0;
@@ -901,6 +871,9 @@ bitboard NotationMove(bitboard b, char *inp){
 	return FromTo(b,from,to,piece);
 }
 
+
+#define SEARCH_DEPTH_LONG_TIME 6
+#define SEARCH_DEPTH_LOW_TIME 5
 void Uci(){ // fix str position
 	InitPawnAttacks();
 	InitPawnPushes();
@@ -912,7 +885,7 @@ void Uci(){ // fix str position
 	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
 	rand64();
 	Init_pestos();
-
+	srand(time(NULL));
 
 	char text[300] = {};
 	bitboard x = {};
@@ -921,6 +894,7 @@ void Uci(){ // fix str position
 	while(strcmp(text, "quit") != 0){
 		memset(text, 0, 300);
 		fgets(text, 300, stdin);
+		if(*text == ' ' || *text == '\n') continue;
 		fprintf(fptr, text);
 		char *t = strtok(text, " \n"); // get the first word
 		if(strcmp(t, "uci") == 0){
@@ -972,13 +946,13 @@ void Uci(){ // fix str position
 						x = Next(x, std::stoi(t));
 					}
 					else{
-						x = Next(x, 8);
+						x = Next(x, SEARCH_DEPTH_LONG_TIME);
 					}
 					Did_Next = 1;
 				}
 				t = strtok(NULL, " \n");
 			}
-			if(Did_Next == 0)if(_game.wtime < 30000 || _game.btime < 30000) x = Next(x, 4); else x = Next(x, 6);
+			if(Did_Next == 0)if(_game.wtime < 30000 || _game.btime < 30000) x = Next(x, SEARCH_DEPTH_LOW_TIME); else x = Next(x, SEARCH_DEPTH_LONG_TIME);
 		}
 		else if(strcmp(t, "d") == 0){
 			ReadableBoard(x);
@@ -1003,6 +977,25 @@ void Uci(){ // fix str position
 			else{
 				std::cout << "value " << Evaluate(x) << std::endl;
 			}	
+		}
+		else if(strcmp(t, "perft") == 0){
+			t = strtok(NULL, " \n");
+			output m = movegen(x);
+			int MoveCount = 0;
+			if(std::stoi(t) == 1){
+				for(int j = 0; j < m.from.size(); j++){
+					std::cout << ctos(m.from[j]) << ctos(m.to[j]) << std::endl;
+				}
+				std::cout << "move" << m.from.size() << std::endl;
+				break;
+			}	
+			for(int i=0; i < m.from.size(); i++){
+				int Current_Perft = Perft(FromTo(x, m.from[i], m.to[i], m.PieceType[i]), std::stoi(t) - 1);
+				//printf("%s%s: %d\n",ctos(m.from[i]),ctos(m.to[i]), Current_Perft);
+				std::cout << ctos(m.from[i]) << ctos(m.to[i]) << " " << Current_Perft << std::endl;
+				MoveCount += Current_Perft;
+			}
+			std::cout << "depth " << std::stoi(t) << " total " << MoveCount << std::endl;
 		}
 	}
 	fclose(fptr);
