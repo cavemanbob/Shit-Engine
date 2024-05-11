@@ -663,6 +663,27 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 	return b;
 }
 
+int OnCheck(bitboard b){ //reversed side (who do move, for other side is check control)
+	int side = b.key >> 8 & 1ULL;
+	side ^= 1ULL; //swap
+	int King_Captured = 0;
+	output m = movegen(b);
+	for(int i=0; i < m.from.size(); i++){
+		if(side == WHITE){
+			if(FromTo(b, m.from[i], m.to[i], m.PieceType[i]).wk == 0){
+				King_Captured = 1;
+				break;
+			}
+		}
+		else{
+			if(FromTo(b, m.from[i], m.to[i], m.PieceType[i]).bk == 0){
+				King_Captured = 1;
+				break;
+			}
+		}
+	}
+	return King_Captured;
+}
 
 int Perft(bitboard b, int depth){
 	if(b.wk == 0 || b.bk == 0) {return 0;}
@@ -724,7 +745,6 @@ float Evaluate(bitboard b){
 
 float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
 	Node_Total++;
-	//printf("%d\n",depth);
 	if(b.wk == 0) return INT_MIN;
 	if(b.bk == 0) return INT_MAX;
 	if(depth == 0)
@@ -757,7 +777,6 @@ float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
 }
 
 bitboard Next(bitboard b, int depth){
-	//for(int i =0; i < 15; i++) PrintBitBoard(*(&b.occupied + i));
 	printf("info depth %d\n",depth);
 	Node_Total = 0;
 	int side = (1ULL << 8 & b.key) ? WHITE : BLACK;
@@ -767,9 +786,8 @@ bitboard Next(bitboard b, int depth){
 	std::vector<float> Val_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;
 	for(int i=0; i < m.from.size(); i++){
-		//ReadableBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]));
 		if(side == WHITE){
-			//float alp = Search(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), BLACK, depth-1);
+			if(OnCheck(FromTo(b, m.from[i], m.to[i], m.PieceType[i]))){Val_table.push_back(INT_MIN);continue;}
 			float alp = alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, INT_MIN, INT_MAX, BLACK);
 			Val_table.push_back(alp);
 			if(val < alp){
@@ -777,7 +795,7 @@ bitboard Next(bitboard b, int depth){
 			}
 		}
 		else{
-			//float alp = Search(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), WHITE, depth-1);
+			if(OnCheck(FromTo(b, m.from[i], m.to[i], m.PieceType[i]))){Val_table.push_back(INT_MAX);continue;}
 			float alp = alphabeta(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1, INT_MIN, INT_MAX, WHITE);
 			Val_table.push_back(alp);
 			if(val > alp){
@@ -785,10 +803,7 @@ bitboard Next(bitboard b, int depth){
 			}
 		}
 	}
-	for(int i=0; i < m.from.size(); i++){
-		ReadableBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]));
-		printf("val %f\n",Evaluate(FromTo(b, m.from[i], m.to[i], m.PieceType[i])));
-	}
+	//for(int i=0; i < Val_table.size(); i++) std::cout << Val_table[i] << std::endl;
 	// Pick random max or min value between them
 	int Max_quantity = 0;
 	for(int i=0; i < Val_table.size(); i++) if(Val_table[i] == val) Max_quantity++;
@@ -801,9 +816,7 @@ bitboard Next(bitboard b, int depth){
 			bestmove = ctos(m.from[i]).append(ctos(m.to[i]));
 			std::cout << "info nodes " << Node_Total << " string " << val << std::endl; 
 			std::cout << "bestmove " << ctos(m.from[i]) << ctos(m.to[i]) << std::endl;
-			//std::cout << "info cp " << val << std::endl;
 			return FromTo(b, m.from[i], m.to[i], m.PieceType[i]);
-			//return ctos(m.from[i]) + ctos(m.to[i]);
 		}
 	}
 	//std::cout << "Error No Max Picked";
@@ -811,69 +824,25 @@ bitboard Next(bitboard b, int depth){
 	return FromTo(b, m.from[0], m.to[0], m.PieceType[0]);
 	//return ctos(m.from[0]) + ctos(m.to[0]);
 }
-/*
-void GameLoop(){
-	InitPawnAttacks();
-	InitPawnPushes();
-	InitKnightAttacks();
-	InitKingAttacks();
-	InitRookAttacks();
-	InitBishopAttacks();
-	FindMagics(RelevantBishopMask, BishopMagics, BishopBase, BISHOP);
-	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
-	rand64();
-
-	bitboard x={};
-	std::string fen = START_FEN;
-	//std::string fen = "rnbqkbnr/pp3ppp/8/N1pp4/4p3/8/PPPPPPPP/1RBQKBNR w Kkq - 0 5";
-	//std::string fen = "r1b1kb1r/ppp2ppp/2n2n2/3p4/2BPqp2/2N2N1P/PPP3P1/R1BQK2R w KQkq - 0 7";
-	//std::string fen = "r1b1kb1r/ppp1qppp/2n2n2/3p4/2BPPp2/2N2N1P/PPP3P1/R1BQK2R w KQkq - 0 7";
-	//std::string fen = "4k3/8/1p2p3/P1BQ1P2/8/8/4R3/K7 b - - 0 1";
-	//std::string fen = "8/8/2p3p1/8/3P4/8/P7/8 w - - 0 1";
-	FenApply(&x, fen);
-	char inp[100] = {1,0};
-	while(inp[0] != 'x'){
-		ReadableBoard(x);
-		scanf("%s", inp);
-		x = PlayerMove(x, inp);
-		ReadableBoard(x);
-		x = Next(x, BLACK, 3);
-	}
-	while(inp[0] != 'x'){
-		ReadableBoard(x);
-		x = Next(x, WHITE, 5);
-		//ReadableBoard(x);
-		//x = Next(x, BLACK, 5);
-		ReadableBoard(x);
-		scanf("%s", inp);
-		x = PlayerMove(x, inp);
-	}
-
-
-}*/
-
 
 bitboard NotationMove(bitboard b, char *inp){
-	//std::cout << "inp " << inp << std::endl;
 	char alphabet[] = "abcdefgh";
 	int from = 0, to = 0;
 	from += strchr(alphabet, inp[0]) - alphabet;
 	from += ((int)inp[1] - '0' - 1) * 8;
-	//to += alphabet.find(inp[2]);
 	to += strchr(alphabet, inp[2]) - alphabet;
 	to += ((int)inp[3] - '0' - 1) * 8;
 	int piece;
 	for(piece=0; piece<12; piece++)
 		if(BitCheck(*(&b.wr + piece) , from)) 
 			break;
-	//std::cout << "from " << from << " to " << to << " piece " << piece;
-	//std::cout << "sideN " << (b.key >> 8 & 1ULL) << std::endl;
 	return FromTo(b,from,to,piece);
 }
 
 
 #define SEARCH_DEPTH_LONG_TIME 6
 #define SEARCH_DEPTH_LOW_TIME 5
+#define TEXT_BUFFER 3000
 void Uci(){ // fix str position
 	InitPawnAttacks();
 	InitPawnPushes();
@@ -887,13 +856,13 @@ void Uci(){ // fix str position
 	Init_pestos();
 	srand(time(NULL));
 
-	char text[300] = {};
+	char text[TEXT_BUFFER] = {};
 	bitboard x = {};
 	struct game _game = {};
-	FILE *fptr = fopen("f.txt", "w");
 	while(strcmp(text, "quit") != 0){
-		memset(text, 0, 300);
-		fgets(text, 300, stdin);
+		FILE *fptr = fopen("f.txt", "a");
+		memset(text, 0, TEXT_BUFFER);
+		fgets(text, TEXT_BUFFER, stdin);
 		if(*text == ' ' || *text == '\n') continue;
 		fprintf(fptr, text);
 		char *t = strtok(text, " \n"); // get the first word
@@ -901,6 +870,7 @@ void Uci(){ // fix str position
 			printf("id name Shit Engine\n");
 			printf("id author Efe Burak Ostundag <Cavemanbob>\n");
 			printf("uciok\n");
+			fflush(stdout);
 		}
 		else if(strcmp(t, "position") == 0){
 			t = strtok(NULL, "\n"); // get all str
@@ -997,8 +967,8 @@ void Uci(){ // fix str position
 			}
 			std::cout << "depth " << std::stoi(t) << " total " << MoveCount << std::endl;
 		}
+		fclose(fptr);
 	}
-	fclose(fptr);
 }
 
 /*
