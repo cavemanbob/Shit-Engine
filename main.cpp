@@ -16,6 +16,14 @@ void printRemainingStack() {
 
 int main(){
 	Uci();
+	/*
+	InitFullBishopAttacks();
+	InitFullRookAttacks();
+	for(int i = 0; i < 64; i++){
+		PrintBitBoard(FullRelevantRookMask[i]);
+		PrintBitBoard(FullRelevantBishopMask[i]);
+		std::cout << i << "\n\n";
+	}*/
 
 	return 0;
 }

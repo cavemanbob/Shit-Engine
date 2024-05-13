@@ -39,11 +39,17 @@ struct bitboard{
 				// castling 1111 -> W_OO W_OOO B_OO B_OOO
 				// 20-27 -> enpassant
 				// turn white 1 black 0
+				// promating 28-30 || 1Q 2R 3B 4N
 
 #ifdef DEBUG
 	u64 oldsquare;
 #endif
 
+};
+const char Promoting_str[8] = " qrbn";
+
+enum Promoting_Flag : u64{
+	NOPROMATE = 0ULL, QUEEN_PROMATE = 1ULL, ROOK_PROMATE = 2ULL, BISHOP_PROMATE = 3ULL, KNIGHT_PROMATE = 4ULL
 };
 
 enum directions : int{
@@ -70,6 +76,8 @@ u64 RookMagics[64] = {};
 u64 RelevantBishopMask[64]={};
 u64 BishopBase[64][4096];
 u64 BishopMagics[64] = {};
+u64 FullRelevantRookMask[64]={};// added corners
+u64 FullRelevantBishopMask[64]={};// added corners
 enum PieceType : int{
 	ROOK, KNIGHT, BISHOP, QUEEN, KING, PAWN
 };
@@ -103,7 +111,7 @@ enum Val : int{
 	KING_VAL = 20000
 };
 
-std::string bestmove("     ");
+std::string bestmove = "      ";
 
 struct game{
 	u64 wtime;

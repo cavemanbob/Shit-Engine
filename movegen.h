@@ -2,7 +2,7 @@
 
 
 
-output movegen(bitboard b){
+output movegen(bitboard b){// kinght check should be added
 	int side = b.key >> 8 & 1ULL;
 	//note use pawn pushes not in while
 	u64 pcw = 255ULL << 16;
@@ -22,27 +22,49 @@ output movegen(bitboard b){
 	const int Piece_Buffer = side == WHITE ? 0 : 6;
 	const int King_Square = Ls1bIndex(*(&b.wk + Piece_Buffer));
 	u64 King_PinMask = 0ULL;
+	u64 CheckMask = ~0ULL;
+	u64 AntiCheckMask = ~0ULL;
 	const u64 KingRelevant = RelevantBishopMask[King_Square] | RelevantRookMask[King_Square];
-	const u64 KingRelevantHV = RelevantRookMask[King_Square];
-	const u64 KingRelevantD = RelevantBishopMask[King_Square];
+	const u64 KingRelevantHV = FullRelevantRookMask[King_Square];
+	const u64 KingRelevantD = FullRelevantBishopMask[King_Square];
+	//alternative way in runtime ############################
+	//const u64 KingRelevantHV = GetRookWay(RelevantRookMask[King_Square], King_Square);
+	//const u64 KingRelevantD = GetRookWay(RelevantBishopMask[King_Square], King_Square);
+	//#######################################################
 	u64 EnemyThreats = ((GetRookWay(RelevantRookMask[King_Square] & EnemyPieces, King_Square) | GetBishopWay(RelevantBishopMask[King_Square] & EnemyPieces, King_Square)) & EnemyPieces);
-	while(EnemyThreats){
+	while(EnemyThreats){// for sliding pieces
 		const int Current_Attacker = Ls1bIndex(EnemyThreats);
-		if(BitCheck( b.bq | b.br | b.wq | b.wr , Current_Attacker)){ 
+		if(BitCheck( (b.bq | b.br | b.wq | b.wr) & KingRelevantHV , Current_Attacker)){ 
 			const u64 Attacker_Xray = GetRookWay(RelevantRookMask[Current_Attacker] & 1ULL << King_Square, Current_Attacker);
 			if(BitCount(Attacker_Xray & KingRelevantHV & b.occupied) == 1){ 
 				King_PinMask |= Attacker_Xray & KingRelevantHV;
 			}
+			else if(BitCount(Attacker_Xray & KingRelevantHV & b.occupied) == 0){//ON THE CHECK
+				CheckMask = 0ULL;
+				CheckMask |= ~(Attacker_Xray & KingRelevantHV);
+				//CheckMask |= Pnk_attacks[3][King_Square];
+				AntiCheckMask = Attacker_Xray & KingRelevantHV;
+				break;
+			}
 		}
-		else if(BitCheck( b.bq | b.bb | b.wq | b.wb , Current_Attacker)){ //diogonal check 
+		else if(BitCheck( (b.bq | b.bb | b.wq | b.wb) & KingRelevantD, Current_Attacker)){ //diogonal check 
 			const u64 Attacker_Xray = GetBishopWay(RelevantBishopMask[Current_Attacker] & 1ULL << King_Square, Current_Attacker);
 			if(BitCount(Attacker_Xray & KingRelevantD & b.occupied) == 1){
 				King_PinMask |= Attacker_Xray & KingRelevantD;
 			}
+			else if(BitCount(Attacker_Xray & KingRelevantD & b.occupied) == 0){//ON THE CHECK
+				CheckMask = 0ULL;
+				CheckMask |= ~(Attacker_Xray & KingRelevantD);
+				//CheckMask |= Pnk_attacks[3][King_Square];
+				AntiCheckMask = Attacker_Xray & KingRelevantD;
+				break;
+			}
 		}
 		EnemyThreats &= EnemyThreats - 1;
 	}
-
+	if(Pnk_attacks[2][King_Square] & *(&b.bn - Piece_Buffer)){ // reversed side
+		AntiCheckMask &= 1ULL << Ls1bIndex(Pnk_attacks[2][King_Square] & *(&b.bn - Piece_Buffer));
+	}
 	if(side == WHITE){
 		while(targets){
 			int i = Ls1bIndex(targets), j;
@@ -67,16 +89,16 @@ output movegen(bitboard b){
 					if(sq & (b.bp >> 9 | b.bp >> 7)){// attacked by pawn
 						ways ^= sq;
 					}
-					else if(sq & Pnk_attacks[3][sqi]){// attacked by king
+					else if(b.bk & Pnk_attacks[3][sqi]){// attacked by king
 						ways ^= sq;
 					}
-					else if(sq & Pnk_attacks[2][sqi]){// attacked by knight
+					else if(b.bn & Pnk_attacks[2][sqi]){// attacked by knight
 						ways ^= sq;
 					}
-					else if(sq & GetRookWay(RelevantRookMask[sqi] & b.occupied, sqi) & b.boccupied){ // rook and queen
+					else if(GetRookWay(RelevantRookMask[sqi] & b.occupied, sqi) & (b.bq | b.br)){ // rook and queen
 						ways ^= sq;
 					}
-					else if(sq & GetBishopWay(RelevantBishopMask[sqi] & b.occupied, sqi) & b.boccupied){ // bishop and queen
+					else if(GetBishopWay(RelevantBishopMask[sqi] & b.occupied, sqi) & (b.bq | b.bb)){ // bishop and queen
 						ways ^= sq;
 					}
 					King_Ways &= King_Ways - 1;
@@ -95,6 +117,8 @@ output movegen(bitboard b){
 			if(1ULL << i & King_PinMask){
 				ways &= King_PinMask;
 			}
+			if(j == KING_W)ways &= CheckMask; //CheckMove
+			else ways &= AntiCheckMask;
 			while(ways){
 				r.from.push_back(i);
 				r.to.push_back(Ls1bIndex(ways));
@@ -128,16 +152,16 @@ output movegen(bitboard b){
 					if(sq & (b.wp << 9 | b.wp << 7)){// attacked by pawn
 						ways ^= sq;
 					}
-					else if(sq & Pnk_attacks[3][sqi]){// attacked by king
+					else if(b.wk & Pnk_attacks[3][sqi]){// attacked by king
 						ways ^= sq;
 					}
-					else if(sq & Pnk_attacks[2][sqi]){// attacked by knight
+					else if(b.wn & Pnk_attacks[2][sqi]){// attacked by knight
 						ways ^= sq;
 					}
-					else if(sq & GetRookWay(RelevantRookMask[sqi] & b.occupied, sqi) & b.woccupied){ // rook and queen
+					else if(GetRookWay(RelevantRookMask[sqi] & b.occupied, sqi) & (b.wq | b.wr)){ // rook and queen
 						ways ^= sq;
 					}
-					else if(sq & GetBishopWay(RelevantBishopMask[sqi] & b.occupied, sqi) & b.woccupied){ // bishop and queen
+					else if(GetBishopWay(RelevantBishopMask[sqi] & b.occupied, sqi) & (b.wq | b.wb)){ // bishop and queen
 						ways ^= sq;
 					}
 					King_Ways &= King_Ways - 1;
@@ -156,6 +180,10 @@ output movegen(bitboard b){
 			if(1ULL << i & King_PinMask){
 				ways &= King_PinMask;
 			}
+			//CheckMove
+			if(j == KING_B)ways &= CheckMask;
+			else ways &= AntiCheckMask;
+			
 			while(ways){
 				r.from.push_back(i);
 				r.to.push_back(Ls1bIndex(ways));
@@ -242,10 +270,12 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 	if (piece == PAWN_W && to > 55) { //promotion
 		*(&b.wr + piece) ^= 1ULL << to;
 		*(&b.wr + QUEEN_W) ^= 1ULL << to;
+		b.key |= QUEEN_PROMATE << 28;
 	}	
 	else if(piece == PAWN_B && to < 8) { //promotion
 		*(&b.wr + piece) ^= 1ULL << to;
 		*(&b.wr + QUEEN_B) ^= 1ULL << to;
+		b.key |= QUEEN_PROMATE << 28;
 	}
 	//castle
 	if(piece == KING_W && from == 4 && to == 6) {

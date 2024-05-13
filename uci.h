@@ -64,13 +64,10 @@ void ApplyFen(bitboard *b, char *fen){
 }
 
 int Perft(bitboard b, int depth){
-	if(b.wk == 0 || b.bk == 0) {return 0;}
 	if(depth == 0) return 1;
 	output m = movegen(b);
 	int MoveCount = 0;
 	for(int i=0; i < m.from.size(); i++){
-		//printf("%s%s: ",ctos(m.from[i]),ctos(m.to[i]));
-		//std::cout << ctos(m.from[i]) << ctos(m.to[i]) << << std::endl;
 		MoveCount += Perft(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1);
 	}
 	return MoveCount;
@@ -91,16 +88,18 @@ bitboard NotationMove(bitboard b, char *inp){
 }
 
 
-#define SEARCH_DEPTH_LONG_TIME 7
+#define SEARCH_DEPTH_LONG_TIME 6
 #define SEARCH_DEPTH_LOW_TIME 5
 #define TEXT_BUFFER 3000
-void Uci(){ // fix str position
+void Uci(){
 	InitPawnAttacks();
 	InitPawnPushes();
 	InitKnightAttacks();
 	InitKingAttacks();
 	InitRookAttacks();
 	InitBishopAttacks();
+	InitFullRookAttacks();
+	InitFullBishopAttacks();
 	FindMagics(RelevantBishopMask, BishopMagics, BishopBase, BISHOP);
 	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
 	rand64();
@@ -208,15 +207,16 @@ void Uci(){ // fix str position
 					std::cout << ctos(m.from[j]) << ctos(m.to[j]) << " 1" << std::endl;
 				}
 				std::cout << "move" << m.from.size() << std::endl;
-				break;
-			}	
-			for(int i=0; i < m.from.size(); i++){
-				int Current_Perft = Perft(FromTo(x, m.from[i], m.to[i], m.PieceType[i]), std::stoi(t) - 1);
-				//printf("%s%s: %d\n",ctos(m.from[i]),ctos(m.to[i]), Current_Perft);
-				std::cout << ctos(m.from[i]) << ctos(m.to[i]) << " " << Current_Perft << std::endl;
-				MoveCount += Current_Perft;
 			}
-			std::cout << "depth " << std::stoi(t) << " total " << MoveCount << std::endl;
+			else{
+				for(int i=0; i < m.from.size(); i++){
+					int Current_Perft = Perft(FromTo(x, m.from[i], m.to[i], m.PieceType[i]), std::stoi(t) - 1);
+					//printf("%s%s: %d\n",ctos(m.from[i]),ctos(m.to[i]), Current_Perft);
+					std::cout << ctos(m.from[i]) << ctos(m.to[i]) << " " << Current_Perft << std::endl;
+					MoveCount += Current_Perft;
+				}
+				std::cout << "depth " << std::stoi(t) << " total " << MoveCount << std::endl;
+			}	
 		}
 		fclose(fptr);
 	}

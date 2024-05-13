@@ -92,6 +92,38 @@ void InitBishopAttacks(){
 }
 
 
+void InitFullRookAttacks(){
+	int dirlist[] = {NORTH, WEST, SOUTH, EAST };
+	for(int i=0; i<64; i++){
+		u64 c = 0ULL;
+		for(int j=1; j<8; j++)
+			if(i%8 >= j) c |= 1ULL << i - j; else break;
+		for(int j=1; j<8; j++)
+			if(7 - i%8 >= j) c |= 1ULL << i + j; else break;
+		for(int j=1; j<8; j++)
+			if(i - j * 8 >= 0) c |= 1ULL << i - j * 8; else break;
+		for(int j=1; j<8; j++)
+			if(i + j * 8 < 65) c |= 1ULL << i + j * 8; else break;
+		FullRelevantRookMask[i] = c;
+	}
+}
+void InitFullBishopAttacks(){
+	int h[] = {NORTH + WEST, NORTH + EAST, SOUTH + WEST, SOUTH + EAST};
+	for(int square=0; square<64; square++){
+		u64 c = 0ULL;
+		int TopSpace = 7 - square/8, BottomSpace = square/8, LeftSpace = square%8, RightSpace = 7 - square%8;
+		for(int j=1; j<8; j++)
+			if(j <= TopSpace && j <= LeftSpace) c |= 1ULL << (square + j * (NORTH + WEST)); else break;
+		for(int j=1; j<8; j++)
+			if(j <= TopSpace && j <= RightSpace) c |= 1ULL << (square + j * (NORTH + EAST)); else break;
+		for(int j=1; j<8; j++)
+			if(j <= BottomSpace && j <= RightSpace) c |= 1ULL << (square + j * (SOUTH + EAST)); else break;
+		for(int j=1; j<8; j++)
+			if(j <= BottomSpace && j <= LeftSpace) c |= 1ULL << (square + j * (SOUTH + WEST)); else break;
+		FullRelevantBishopMask[square] = c;
+	}
+}
+
 
 void FindMagics(u64* mask, u64* magictable, u64 lookup[][4096], int piece){
 	for(int square = 0; square < 64; square++){

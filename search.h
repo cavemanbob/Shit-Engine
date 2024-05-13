@@ -38,9 +38,7 @@ bitboard Next(bitboard b, int depth){
 	printf("info depth %d\n",depth);
 	Node_Total = 0;
 	int side = (1ULL << 8 & b.key) ? WHITE : BLACK;
-	//std::cout << "side " << side << std::endl;
 	output m = movegen(b);
-	//std::cout << "possible moves count: " << m.from.size() << std::endl;
 	std::vector<float> Val_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;
 	for(int i=0; i < m.from.size(); i++){
@@ -71,9 +69,14 @@ bitboard Next(bitboard b, int depth){
 			Max_quantity--;
 		}
 		if(Max_quantity == 0){
+			bitboard Selected_Board = FromTo(b, m.from[i], m.to[i], m.PieceType[i]);
 			bestmove = ctos(m.from[i]).append(ctos(m.to[i]));
+			//bestmove[4] = Promoting_str[Selected_Board.key >> 28 & 7ULL]; //promoting flag
+			//infos
 			std::cout << "info nodes " << Node_Total << " string " << val << std::endl; 
-			std::cout << "bestmove " << ctos(m.from[i]) << ctos(m.to[i]) << std::endl;
+			//best move
+			std::cout << "bestmove " << bestmove << ((Selected_Board.key >> 28 & 7ULL) ? Promoting_str[Selected_Board.key >> 28 & 7ULL] : ' ') << std::endl;
+			//if(Selected_Board.key >> 28 & 7ULL) std::cout << 
 			return FromTo(b, m.from[i], m.to[i], m.PieceType[i]);
 		}
 	}
