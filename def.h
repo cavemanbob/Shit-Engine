@@ -62,7 +62,7 @@ struct magic{
 	u64 key;
 };
 
-u64 Pnk_attacks[4][64]={};
+u64 Pnk_attacks[4][64]={}; // PawnW PawnB Knight King
 u64 p_pushes[2][64]={};
 u64 RelevantRookMask[64]={};
 u64 RookBase[64][4096];

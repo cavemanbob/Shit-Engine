@@ -73,3 +73,41 @@ std::string ctos(int x){ // cordinate to string 54 -> e4
 	//std::cout << "x " << x << " " <<  r  << std::endl;
 	return r;
 }
+
+void PrintBitBoard(u64 b){
+	for(int i=7; i>=0;i--){
+		for(int j=0; j<8; j++){
+			std::cout << (BitCheck(b, i * 8 + j) ? "1":"0");
+		}
+		std::cout << '\n';
+	}
+	std::cout << '\n';
+}
+
+void ReadableBoard(bitboard b){
+	std::string StrPieces = "RNBQKPrnbqkp";
+	for(int i=7; i>=0; i--){
+		std::cout << i+1 << ' ';
+		for(int j=0;j<8;j++){
+			u64* s = &b.wr;
+			int k;
+			for(k=0; k<12; k++){
+				if( *(s+k) & (1ULL << i*8+j)){
+					std::cout << StrPieces[k] << " ";
+					break;
+				}
+			}
+#ifdef DEBUG
+			if(b.oldsquare == i * 8 + j){
+				std::cout << "x ";
+				continue;
+			}
+#endif
+			if(k==12){
+				std::cout << ". ";
+			}
+		}
+		std::cout << '\n';
+	}
+	std::cout << "  A B C D E F G H\n\n";
+}

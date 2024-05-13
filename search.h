@@ -1,4 +1,6 @@
 
+
+
 float alphabeta(bitboard b, int depth, float alpha, float beta, int side){
 	Node_Total++;
 	if(b.wk == 0) return INT_MIN;
