@@ -1,7 +1,7 @@
 #include "func.h"
 
 
-
+/*
 void printRemainingStack() {
     CONTEXT context;
     GetThreadContext(GetCurrentThread(), &context);
@@ -12,10 +12,11 @@ void printRemainingStack() {
     // Print remaining stack space
     std::cout << "Remaining stack: " << stackPointer << " bytes\n";
 }
-
+*/
 
 int main(){
 	Uci();
+	//PrintBitBoard(~AFILEMASK & ~0ULL);
 	/*
 	InitFullBishopAttacks();
 	InitFullRookAttacks();

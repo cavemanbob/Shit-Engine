@@ -49,7 +49,15 @@ void ApplyFen(bitboard *b, char *fen){
 			}
 			space++;	
 		}
-		else if(space == 3){
+		else if(space == 3){// get enpass sq
+			if(*t != '-'){
+				char str[] = "abcdefgh";
+				int sq = 0;
+				sq += strchr(str, *t) - str;
+				sq += (int)(*(t + 1) - '0' - 2) * 8;
+				//std::cout << "GEPS " << sq << std::endl;
+				b->key |= sq << 20;
+			}
 			space++;
 		}
 		else if(space == 4){
@@ -65,9 +73,11 @@ void ApplyFen(bitboard *b, char *fen){
 
 int Perft(bitboard b, int depth){
 	if(depth == 0) return 1;
+	//std::cout << ((b.key >> 20 & 0b11111111)) << std::endl;
 	output m = movegen(b);
 	int MoveCount = 0;
 	for(int i=0; i < m.from.size(); i++){
+		if(b.br & 1ULL << 7) ReadableBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]));
 		MoveCount += Perft(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1);
 	}
 	return MoveCount;
@@ -199,24 +209,36 @@ void Uci(){
 			}	
 		}
 		else if(strcmp(t, "perft") == 0){
+			clock_t ct = clock();
 			t = strtok(NULL, " \n");
 			output m = movegen(x);
 			int MoveCount = 0;
 			if(std::stoi(t) == 1){
 				for(int j = 0; j < m.from.size(); j++){
-					std::cout << ctos(m.from[j]) << ctos(m.to[j]) << " 1" << std::endl;
+					std::cout << ctos(m.from[j]) << ctos(m.to[j]) << Promoting_str[FromTo(x, m.from[j], m.to[j], m.PieceType[j]).key >> 28 & 0b111] << " 1" << std::endl;
 				}
 				std::cout << "move" << m.from.size() << std::endl;
 			}
 			else{
 				for(int i=0; i < m.from.size(); i++){
+				/*	if(m.from[i] == 56 && m.to[i] == 57) {
+						ReadableBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]));
+						//PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).wr);
+						//PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).woccupied);
+						PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).occupied);
+						PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).br);
+						PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).boccupied);
+						std::cout << "flag " << ((FromTo(x, m.from[i], m.to[i], m.PieceType[i]).key & 0b1111 << 9) >> 9) << std::endl;
+					}*/
 					int Current_Perft = Perft(FromTo(x, m.from[i], m.to[i], m.PieceType[i]), std::stoi(t) - 1);
 					//printf("%s%s: %d\n",ctos(m.from[i]),ctos(m.to[i]), Current_Perft);
-					std::cout << ctos(m.from[i]) << ctos(m.to[i]) << " " << Current_Perft << std::endl;
+					std::cout << ctos(m.from[i]) << ctos(m.to[i]) << Promoting_str[FromTo(x, m.from[i], m.to[i], m.PieceType[i]).key >> 28 & 0b111] << " " << Current_Perft << std::endl;
 					MoveCount += Current_Perft;
 				}
 				std::cout << "depth " << std::stoi(t) << " total " << MoveCount << std::endl;
-			}	
+			}
+			ct = clock() - ct;
+			std::cout << ((double)ct)/CLOCKS_PER_SEC << std::endl;	
 		}
 		fclose(fptr);
 	}

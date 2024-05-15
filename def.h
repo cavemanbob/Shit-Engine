@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cstring>
 #include <random>
-#include <windows.h>
+//#include <windows.h>
 #include <cassert>
 #define DEBUG
 
@@ -49,7 +49,7 @@ struct bitboard{
 const char Promoting_str[8] = " qrbn";
 
 enum Promoting_Flag : u64{
-	NOPROMATE = 0ULL, QUEEN_PROMATE = 1ULL, ROOK_PROMATE = 2ULL, BISHOP_PROMATE = 3ULL, KNIGHT_PROMATE = 4ULL
+	NOPROMATE = 0ULL, ROOK_PROMATE = 1ULL, KNIGHT_PROMATE = 2ULL, BISHOP_PROMATE = 3ULL, QUEEN_PROMATE = 4ULL
 };
 
 enum directions : int{
@@ -85,11 +85,18 @@ enum PieceType : int{
 enum Piece : int{
 	ROOK_W=0, KNIGHT_W, BISHOP_W, QUEEN_W, KING_W, PAWN_W,
 	ROOK_B=6, KNIGHT_B, BISHOP_B, QUEEN_B, KING_B, PAWN_B,
-	En_W, En_B
+	En_W, En_B, Pro_R, Pro_N, Pro_B, Pro_Q
 };
 enum side : int{
 	BLACK = 0, WHITE = 1
 };
+enum FileMask : u64{
+	HFILEMASK = 0x8080808080808080,
+	AFILEMASK = 0x0101010101010101,
+	RANK8MASK = 0xFF00000000000000,
+	RANK1MASK = 0x00000000000000FF
+};
+
 
 u64 state = 11349138731524945662ULL; //seed
 //#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
