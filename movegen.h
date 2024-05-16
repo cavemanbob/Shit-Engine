@@ -462,6 +462,8 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 	else if(piece == ROOK_W && from == 7) b.key &= ~(1ULL << 12);
 	else if(piece == ROOK_B && from == 56) b.key &= ~(1ULL << 9);
 	else if(piece == ROOK_B && from == 63) b.key &= ~(1ULL << 10);
+	else if(piece == KING_W) {b.key &= ~(1ULL << 12);b.key &= ~(1ULL << 11);}
+	else if(piece == KING_B) {b.key &= ~(1ULL << 10);b.key &= ~(1ULL << 9);}
 	//note add no castle when king moved (but check first is that need it)
 	//enpass
 	if((piece == PAWN_B || piece == PAWN_W) && abs(from / 8 - to / 8) > 1 ) {b.key &= ~(0b1111111 << 20); b.key ^= to << 20;} else b.key &= ~(0b1111111 << 20); //enpassant set key
