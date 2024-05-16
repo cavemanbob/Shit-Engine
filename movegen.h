@@ -5,11 +5,7 @@ inline int is_square_attacked(bitboard b, int sqi){
 	int side = b.key >> 8 & 1ULL;
 	const u64 sq = 1ULL << sqi;
 	const int Piece_Buffer = side == WHITE ? 6 : 0;
-	//if(sqi == 23) std::cout << std::endl << "xx" << std::endl;
-	//if(sqi == 23) PrintBitBoard((~HFILEMASK & b.bp) >> 9);
-	//if(sqi == 23) PrintBitBoard((~AFILEMASK & b.bp) >> 7);
-	//if(sqi == 23) PrintBitBoard((~HFILEMASK & b.bp) >> 9 | (~AFILEMASK & b.bp) >> 7);
-	if(side == WHITE){ // >> 9 to LEFT AFILE >> 7 RIGHT HFILE
+	if(side == WHITE){ 
 		if(((~AFILEMASK & b.bp) >> 9 | (~HFILEMASK & b.bp) >> 7) & sq) return 1;
 	}
 	else{
@@ -27,7 +23,28 @@ inline int is_square_attacked(bitboard b, int sqi){
 	
 	return 0;
 }
+inline int square_attacked_times(bitboard b, int sqi){
+	int side = b.key >> 8 & 1ULL;
+	const u64 sq = 1ULL << sqi;
+	const int Piece_Buffer = side == WHITE ? 6 : 0;
+	int times = 0;
+	if(side == WHITE){ 
+		if(((~AFILEMASK & b.bp) >> 9 | (~HFILEMASK & b.bp) >> 7) & sq) times++;
+	}
+	else{
+		if(((~HFILEMASK & b.wp) << 9 | (~AFILEMASK & b.wp) << 7) & sq) times++;
+	}
+	
+	times += BitCount(GetRookWay(RelevantRookMask[sqi] & b.occupied, sqi) & (*(&b.wr + Piece_Buffer) | *(&b.wq + Piece_Buffer)));
+	times += BitCount(GetBishopWay(RelevantBishopMask[sqi] & b.occupied, sqi) & (*(&b.wb + Piece_Buffer) | *(&b.wq + Piece_Buffer))); 
+	if(Pnk_attacks[2][sqi] & *(&b.wn + Piece_Buffer)) 
+		times++;
+	if(Pnk_attacks[3][sqi] & *(&b.wk + Piece_Buffer)) 
+		times++;
+	
+	return times;
 
+}
 
 
 output movegen(bitboard b){// kinght check should be added
@@ -118,6 +135,11 @@ output movegen(bitboard b){// kinght check should be added
 	}
 	if(King_PinMask & *(&b.wq + Piece_Buffer)){
 		QueenPinned = 1;
+	}
+	//std::cout << "attacked to king " << square_attacked_times(b,King_Square) << std::endl; 
+	if(square_attacked_times(b,King_Square) > 1){// double check
+		//std::cout << "HERE" << std::endl;
+		AntiCheckMask = 0ULL;
 	}
 	//std::cout << "Queen Pinned " << QueenPinned << std::endl;
 	//PrintBitBoard(CheckMask);
@@ -293,6 +315,7 @@ output movegen(bitboard b){// kinght check should be added
 
 
 bitboard FromTo(bitboard b, int from, int to, int piece){
+	int prom = 0;
 	//u64 side = piece < 6 ? WHITE : BLACK;
 	u64 side = (b.key >> 8) & 1ULL;
 	b.key ^= 1ULL << 8; //swap bit change turn
@@ -311,11 +334,13 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 	}
 	//promotion
 	if (piece > 13) {
+		prom = 1;
 		piece = piece - 14 + !side * 6;
+		//std::cout << "piece " << piece << std::endl;
 		//swap pawn to target piece
 		*(&b.wp + !side * 6) ^= 1ULL << from;
 		*(&b.wr + piece) |= 1ULL << from;
-		b.key |= (piece - 14 + 1) << 28; // +1 for str and no null
+		b.key |= (piece + 1) << 28; // +1 for str and no null
 	}	
 
 	if(BitCheck(b.occupied, to) == 1){ // Capture
@@ -383,6 +408,7 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 #ifdef DEBUG
 	b.oldsquare = from;
 #endif
+	if(0){ std::cout << std::endl;ReadableBoard(b);}
 	return b;
 }
 

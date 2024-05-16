@@ -139,3 +139,71 @@ bug report
 
 - Enpass bug when enemy captured 3rk1n1/p7/n5pr/1p6/5Pp1/2B1K3/PP2P1PP/R4B1R w - - 0 18 
 - movegen NO CASTLE produce
+
+
+rook[whıte][40] & occiupid
+
+
+
+
+
+
+some perfts to checked
+position 8/1KR3q1/7k/8/4N3/5b2/1r6/8 w - - 0 1
+go wtime 85330 btime 31710 winc 2000 binc 2000
+
+
+position rnbqkbnr/1ppppppp/8/pB6/8/4P3/PPPP1PPP/RNBQK1NR b KQkq - 1 2
+perft 1
+
+position startpos
+perft 4
+
+
+/// invalid f8e8 f8g8
+position rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPPNNnPP/R1BQK2R b KQ - 2 8
+perft 1
+34
+
+//terrible move
+position rn1qkbnr/ppp2ppp/8/3pp3/6b1/2N1PN2/PPPP1PPP/R1BQKB1R w KQkq - 0 4
+
+
+
+on the check
+if movegen == 0 ??? stealmate or checkmate
+
+
+//error 41
+position rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+perft 1
+44
+
+
+//black on the check
+position rn1qkbnr/ppp2ppp/8/1B1pp3/6b1/2N1PN2/PPPP1PPP/R1BQK2R b KQkq - 0 4
+perft 1
+6
+
+//wrong go to king 
+position rn1q1bnr/ppp1kppp/8/1B1pp3/6b1/2N1PN2/PPPP1PPP/1RBQK2R b K - 2 5
+perft 1
+32
+
+//check this
+position rn1q1bnr/ppp1kppp/8/1B1pp3/8/2N1Pb2/PPPP1PPP/1RBQK2R w K - 0 6
+perft 1
+32
+
+//check this for knight
+position rn1q1bnr/ppp1kppp/8/1B1pp3/8/2N1Pb2/PPPP1PPP/1RBQK2R w K - 0 6
+perft 2
+966
+
+position rn1q1bnr/ppp1kppp/8/1B1Np3/8/4Pb2/PPPP1PPP/1RBQK2R b K - 0 6
+perft 2
+138
+
+position rnbqkbnr/ppppp1pp/8/5p1Q/8/4P3/PPPP1PPP/RNB1KBNR b KQkq - 1 2
+perft 1
+1
