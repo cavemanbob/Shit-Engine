@@ -4,14 +4,40 @@
 inline int is_square_attacked(bitboard b, int sqi){
 	int side = b.key >> 8 & 1ULL;
 	const u64 sq = 1ULL << sqi;
-	const int Piece_Buffer = side == WHITE ? 6 : 0;
+	const int Piece_Buffer = (side == WHITE) ? 6 : 0;
+	//std::cout << "Piece_Buffet " << Piece_Buffer << std::endl;
 	if(side == WHITE){ 
 		if(((~AFILEMASK & b.bp) >> 9 | (~HFILEMASK & b.bp) >> 7) & sq) return 1;
 	}
 	else{
 		if(((~HFILEMASK & b.wp) << 9 | (~AFILEMASK & b.wp) << 7) & sq) return 1;
 	}
+	//PrintBitBoard(GetRookWay(RelevantRookMask[sqi] & b.occupied, sqi));
+	//PrintBitBoard((*(&b.wr + Piece_Buffer) | *(&b.wq + Piece_Buffer)));
+	if(GetRookWay(RelevantRookMask[sqi] & b.occupied, sqi) & (*(&b.wr + Piece_Buffer) | *(&b.wq + Piece_Buffer))) 
+		return 1;
+	if(GetBishopWay(RelevantBishopMask[sqi] & b.occupied, sqi) & (*(&b.wb + Piece_Buffer) | *(&b.wq + Piece_Buffer))) 
+		return 1;
+	if(Pnk_attacks[2][sqi] & *(&b.wn + Piece_Buffer)) 
+		return 1;
+	if(Pnk_attacks[3][sqi] & *(&b.wk + Piece_Buffer)) 
+		return 1;
 	
+	return 0;
+}
+inline int is_square_attacked(bitboard b, int sqi, int side){
+	//int side = b.key >> 8 & 1ULL;
+	const u64 sq = 1ULL << sqi;
+	const int Piece_Buffer = (side == WHITE) ? 6 : 0;
+	//std::cout << "Piece_Buffet " << Piece_Buffer << std::endl;
+	if(side == WHITE){ 
+		if(((~AFILEMASK & b.bp) >> 9 | (~HFILEMASK & b.bp) >> 7) & sq) return 1;
+	}
+	else{
+		if(((~HFILEMASK & b.wp) << 9 | (~AFILEMASK & b.wp) << 7) & sq) return 1;
+	}
+	//PrintBitBoard(GetRookWay(RelevantRookMask[sqi] & b.occupied, sqi));
+	//PrintBitBoard((*(&b.wr + Piece_Buffer) | *(&b.wq + Piece_Buffer)));
 	if(GetRookWay(RelevantRookMask[sqi] & b.occupied, sqi) & (*(&b.wr + Piece_Buffer) | *(&b.wq + Piece_Buffer))) 
 		return 1;
 	if(GetBishopWay(RelevantBishopMask[sqi] & b.occupied, sqi) & (*(&b.wb + Piece_Buffer) | *(&b.wq + Piece_Buffer))) 
@@ -45,6 +71,9 @@ inline int square_attacked_times(bitboard b, int sqi){
 	return times;
 
 }
+
+
+bitboard FromTo(bitboard b, int from, int to, int piece); // idk which one should come first 
 
 
 output movegen(bitboard b){// kinght check should be added
@@ -161,8 +190,11 @@ output movegen(bitboard b){// kinght check should be added
 					if(1ULL << i & KingRelevantD) ways &= KingRelevantD;
 					else ways &= KingRelevantHV;
 				}
-				if(i + 1 == eps && i%8 != 7){ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //right enpass
-				if(i - 1 == eps && i%8 != 0){ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //left enpass
+				if(i + 1 == eps && i%8 != 7 && is_square_attacked(FromTo(b, i, eps + 8, En_W), King_Square, side) == 0)
+					{ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //right enpass
+				if(i - 1 == eps && i%8 != 0 && is_square_attacked(FromTo(b, i, eps + 8, En_W), King_Square, side) == 0)
+					{ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //left enpass
+				if(1ULL << i & King_PinMask)	ways &= King_PinMask;
 				
 				while(ways & RANK8MASK & AntiCheckMask){ //promotion moves
 					const int pro_to = Ls1bIndex(ways & RANK8MASK & AntiCheckMask);
@@ -191,19 +223,31 @@ output movegen(bitboard b){// kinght check should be added
 			}
 			else if(j == 0){//rook
 				ways = GetRookWay(b.occupied & RelevantRookMask[i], i) & emptyW;
+				if(King_PinMask & 1ULL << i){
+					if(1ULL << i & FullRelevantRookMask[King_Square])
+						ways &= FullRelevantRookMask[King_Square];
+					else
+						ways &= FullRelevantBishopMask[King_Square];
+				}
 			}
 			else if(j == 2){//bishop
 				ways = GetBishopWay(b.occupied & RelevantBishopMask[i], i) & emptyW;
+				if(King_PinMask & 1ULL << i){
+					if(1ULL << i & FullRelevantBishopMask[King_Square])
+						ways &= FullRelevantBishopMask[King_Square];
+					else
+						ways &= FullRelevantRookMask[King_Square];
+				}
 			}
 			else if(j == 3){//queen
 				ways = GetRookWay(b.occupied & RelevantRookMask[i], i) & emptyW;
 				ways |= GetBishopWay(b.occupied & RelevantBishopMask[i], i) & emptyW;
 				//PrintBitBoard(FullRelevantBishopMask[i] & 1ULL << King_Square);
-				if(QueenPinned && FullRelevantRookMask[i] & 1ULL << King_Square){
-					ways &= FullRelevantRookMask[i];
-				}
-				else if(QueenPinned && FullRelevantBishopMask[i] & 1ULL << King_Square){
-					ways &= FullRelevantBishopMask[i];
+				if(King_PinMask & 1ULL << i){
+					if(1ULL << i & FullRelevantBishopMask[King_Square])
+						ways &= FullRelevantBishopMask[King_Square];
+					else
+						ways &= FullRelevantRookMask[King_Square];
 				}
 			}
 			if(1ULL << i & King_PinMask){
@@ -237,8 +281,11 @@ output movegen(bitboard b){// kinght check should be added
 					if(1ULL << i & KingRelevantD) ways &= KingRelevantD;
 					else ways &= KingRelevantHV;
 				}
-				if(i + 1 == eps && i%8 != 7){ r.from.push_back(i); r.to.push_back(eps - 8); r.PieceType.push_back(En_B);} //right enpass
-				if(i - 1 == eps && i%8 != 0){ r.from.push_back(i); r.to.push_back(eps - 8); r.PieceType.push_back(En_B);} //left enpass
+				if(i + 1 == eps && i%8 != 7 && is_square_attacked(FromTo(b, i, eps - 8, En_B), King_Square, side) == 0)
+					{ r.from.push_back(i); r.to.push_back(eps - 8); r.PieceType.push_back(En_B);} //right enpass
+				if(i - 1 == eps && i%8 != 0 && is_square_attacked(FromTo(b, i, eps - 8, En_B), King_Square, side) == 0)
+					{ r.from.push_back(i); r.to.push_back(eps - 8); r.PieceType.push_back(En_B);} //left enpass
+				if(1ULL << i & King_PinMask)	ways &= King_PinMask;
 				
 				while(ways & RANK1MASK & AntiCheckMask){ //promotion moves
 					const int pro_to = Ls1bIndex(ways & RANK1MASK & AntiCheckMask);
@@ -264,18 +311,30 @@ output movegen(bitboard b){// kinght check should be added
 			}
 			else if(j == 6){//rook
 				ways = GetRookWay(b.occupied & RelevantRookMask[i], i) & ~b.boccupied;
+				if(King_PinMask & 1ULL << i){
+					if(1ULL << i & FullRelevantRookMask[King_Square])
+						ways &= FullRelevantRookMask[King_Square];
+					else
+						ways &= FullRelevantBishopMask[King_Square];
+				}
 			}
 			else if(j == 8){//bishop
 				ways = GetBishopWay(b.occupied & RelevantBishopMask[i], i) & ~b.boccupied;
+				if(King_PinMask & 1ULL << i){
+					if(1ULL << i & FullRelevantBishopMask[King_Square])
+						ways &= FullRelevantBishopMask[King_Square];
+					else
+						ways &= FullRelevantRookMask[King_Square];
+				}
 			}
 			else if(j == 9){//queen
 				ways = GetRookWay(b.occupied & RelevantRookMask[i], i) & ~b.boccupied;
 				ways |= GetBishopWay(b.occupied & RelevantBishopMask[i], i) & ~b.boccupied;
-				if(QueenPinned && FullRelevantRookMask[i] & 1ULL << King_Square){
-					ways &= FullRelevantRookMask[i];
-				}
-				else if(QueenPinned && FullRelevantBishopMask[i] & 1ULL << King_Square){
-					ways &= FullRelevantBishopMask[i];
+				if(King_PinMask & 1ULL << i){
+					if(1ULL << i & FullRelevantBishopMask[King_Square])
+						ways &= FullRelevantBishopMask[King_Square];
+					else
+						ways &= FullRelevantRookMask[King_Square];
 				}
 			}
 			if(1ULL << i & King_PinMask){
@@ -403,6 +462,7 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 	else if(piece == ROOK_W && from == 7) b.key &= ~(1ULL << 12);
 	else if(piece == ROOK_B && from == 56) b.key &= ~(1ULL << 9);
 	else if(piece == ROOK_B && from == 63) b.key &= ~(1ULL << 10);
+	//note add no castle when king moved (but check first is that need it)
 	//enpass
 	if((piece == PAWN_B || piece == PAWN_W) && abs(from / 8 - to / 8) > 1 ) {b.key &= ~(0b1111111 << 20); b.key ^= to << 20;} else b.key &= ~(0b1111111 << 20); //enpassant set key
 #ifdef DEBUG
