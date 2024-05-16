@@ -142,10 +142,10 @@ output movegen(bitboard b){// kinght check should be added
 				if(i + 1 == eps && i%8 != 7){ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //right enpass
 				if(i - 1 == eps && i%8 != 0){ r.from.push_back(i); r.to.push_back(eps + 8); r.PieceType.push_back(En_W);} //left enpass
 				
-				while(ways & RANK8MASK){ //promotion moves
-					const int pro_to = Ls1bIndex(ways & RANK8MASK);
+				while(ways & RANK8MASK & AntiCheckMask){ //promotion moves
+					const int pro_to = Ls1bIndex(ways & RANK8MASK & AntiCheckMask);
 					for(int pro_type = 0; pro_type < 4; pro_type++){r.from.push_back(i); r.to.push_back(pro_to); r.PieceType.push_back(14 + pro_type);}
-					ways &= (ways & RANK8MASK) - 1;
+					ways &= (ways & RANK8MASK & AntiCheckMask) - 1;
 				}
 			}
 			else if(j == 1){ //knight
@@ -218,10 +218,10 @@ output movegen(bitboard b){// kinght check should be added
 				if(i + 1 == eps && i%8 != 7){ r.from.push_back(i); r.to.push_back(eps - 8); r.PieceType.push_back(En_B);} //right enpass
 				if(i - 1 == eps && i%8 != 0){ r.from.push_back(i); r.to.push_back(eps - 8); r.PieceType.push_back(En_B);} //left enpass
 				
-				while(ways & RANK1MASK){ //promotion moves
-					const int pro_to = Ls1bIndex(ways & RANK1MASK);
+				while(ways & RANK1MASK & AntiCheckMask){ //promotion moves
+					const int pro_to = Ls1bIndex(ways & RANK1MASK & AntiCheckMask);
 					for(int pro_type = 0; pro_type < 4; pro_type++){r.from.push_back(i); r.to.push_back(pro_to); r.PieceType.push_back(14 + pro_type);}
-					ways &= (ways & RANK1MASK) - 1;
+					ways &= (ways & RANK1MASK & AntiCheckMask) - 1;
 				}
 			}
 			else if(j == 7){ //knight
@@ -281,10 +281,10 @@ output movegen(bitboard b){// kinght check should be added
 	} //L W
 	//if(b.wr & 1ULL << 1)	std::cout << "flags " << BitCheck(b.key, 11) << BitCheck(b.occupied,1) << BitCheck(b.occupied,2) << BitCheck(b.occupied, 3) << BitCheck(b.wr,0) << BitCheck(b.wk,4) << side << is_square_attacked(b,2) << is_square_attacked(b,3) << std::endl;
 	if(BitCheck(b.key, 10) && BitCheck(b.occupied,61) == 0 && BitCheck(b.occupied,62) == 0 && BitCheck(b.br,63) && BitCheck(b.bk,60) && side == BLACK && is_square_attacked(b,61) == 0 && is_square_attacked(b,62) == 0 && is_square_attacked(b,60) == 0){
-		r.from.push_back(60); r.to.push_back(62); r.PieceType.push_back(KING_W);
+		r.from.push_back(60); r.to.push_back(62); r.PieceType.push_back(KING_B);
 	} //S B
 	if(BitCheck(b.key, 9) && BitCheck(b.occupied,57) == 0 && BitCheck(b.occupied,58) == 0 && BitCheck(b.occupied, 59) == 0 && BitCheck(b.br,56) && BitCheck(b.bk,60) && side == BLACK && is_square_attacked(b,58) == 0 && is_square_attacked(b,59) == 0 && is_square_attacked(b,60) == 0){
-		r.from.push_back(60); r.to.push_back(58); r.PieceType.push_back(KING_W);
+		r.from.push_back(60); r.to.push_back(58); r.PieceType.push_back(KING_B);
 	} //L B
 	//if(b.br & 1ULL << 57)
 		//std::cout << "Flags " << BitCheck(b.key, 11) << BitCheck(b.occupied,1) << BitCheck(b.occupied,2) << BitCheck(b.occupied, 3) << BitCheck(b.wr,0) << BitCheck(b.wk,4) << side << is_square_attacked(b,2) << is_square_attacked(b,3) << "\n";
@@ -310,10 +310,12 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 		piece = PAWN_W;
 	}
 	//promotion
-	if (piece > 13) {// NOT SWAPNED PIECES AT TO
-		piece = piece - 14 + side;
-		//*(&b.wr + piece) |= 1ULL << from;
-		b.key |= (piece - !side * 6 - 1) << 28;
+	if (piece > 13) {
+		piece = piece - 14 + !side * 6;
+		//swap pawn to target piece
+		*(&b.wp + !side * 6) ^= 1ULL << from;
+		*(&b.wr + piece) |= 1ULL << from;
+		b.key |= (piece - 14 + 1) << 28; // +1 for str and no null
 	}	
 
 	if(BitCheck(b.occupied, to) == 1){ // Capture

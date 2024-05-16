@@ -77,7 +77,10 @@ int Perft(bitboard b, int depth){
 	output m = movegen(b);
 	int MoveCount = 0;
 	for(int i=0; i < m.from.size(); i++){
-		if(b.br & 1ULL << 7) ReadableBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]));
+		//if(b.bk & 1ULL << 58){
+		  	//ReadableBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]));
+			//for(int j = 0; j < 15; j++)PrintBitBoard(*(&b.occupied + j));
+		//}
 		MoveCount += Perft(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1);
 	}
 	return MoveCount;
@@ -214,8 +217,12 @@ void Uci(){
 			output m = movegen(x);
 			int MoveCount = 0;
 			if(std::stoi(t) == 1){
-				for(int j = 0; j < m.from.size(); j++){
-					std::cout << ctos(m.from[j]) << ctos(m.to[j]) << Promoting_str[FromTo(x, m.from[j], m.to[j], m.PieceType[j]).key >> 28 & 0b111] << " 1" << std::endl;
+				for(int i = 0; i < m.from.size(); i++){
+					//if(m.from[i] == 60 && m.to[i] == 58){
+						//ReadableBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]));
+						//for(int j = 0; j < 15; j++)PrintBitBoard(*(&x.occupied + j));
+					//}
+					std::cout << ctos(m.from[i]) << ctos(m.to[i]) << Promoting_str[FromTo(x, m.from[i], m.to[i], m.PieceType[i]).key >> 28 & 0b111] << " 1" << std::endl;
 				}
 				std::cout << "move" << m.from.size() << std::endl;
 			}

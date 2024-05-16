@@ -98,7 +98,7 @@ void ReadableBoard(bitboard b){
 				}
 			}
 #ifdef DEBUG
-			if(b.oldsquare == i * 8 + j){
+			if(b.oldsquare == i * 8 + j &&  !(b.occupied & 1ULL << b.oldsquare)){
 				std::cout << "x ";
 				continue;
 			}

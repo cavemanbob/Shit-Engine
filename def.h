@@ -46,11 +46,6 @@ struct bitboard{
 #endif
 
 };
-const char Promoting_str[8] = " qrbn";
-
-enum Promoting_Flag : u64{
-	NOPROMATE = 0ULL, ROOK_PROMATE = 1ULL, KNIGHT_PROMATE = 2ULL, BISHOP_PROMATE = 3ULL, QUEEN_PROMATE = 4ULL
-};
 
 enum directions : int{
 	NORTH = 8,
@@ -83,10 +78,17 @@ enum PieceType : int{
 };
 
 enum Piece : int{
-	ROOK_W=0, KNIGHT_W, BISHOP_W, QUEEN_W, KING_W, PAWN_W,
-	ROOK_B=6, KNIGHT_B, BISHOP_B, QUEEN_B, KING_B, PAWN_B,
-	En_W, En_B, Pro_R, Pro_N, Pro_B, Pro_Q
+	ROOK_W=0, KNIGHT_W = 1, BISHOP_W = 2, QUEEN_W = 3, KING_W = 4, PAWN_W = 5,
+	ROOK_B=6, KNIGHT_B = 7, BISHOP_B = 8, QUEEN_B = 9, KING_B = 10, PAWN_B = 11,
+	En_W = 12, En_B = 13, Pro_R = 14, Pro_N = 15, Pro_B = 16, Pro_Q = 17
 };
+
+const char Promoting_str[8] = " rnbq";
+
+enum Promoting_Flag : u64{
+	NOPROMATE = 0ULL, ROOK_PROMATE = 1ULL, KNIGHT_PROMATE = 2ULL, BISHOP_PROMATE = 3ULL, QUEEN_PROMATE = 4ULL
+};
+
 enum side : int{
 	BLACK = 0, WHITE = 1
 };
