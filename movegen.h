@@ -224,19 +224,19 @@ output movegen(bitboard b){// kinght check should be added
 			else if(j == 0){//rook
 				ways = GetRookWay(b.occupied & RelevantRookMask[i], i) & emptyW;
 				if(King_PinMask & 1ULL << i){
-					if(1ULL << i & FullRelevantRookMask[King_Square])
-						ways &= FullRelevantRookMask[King_Square];
+					if(1ULL << i & FullRelevantBishopMask[King_Square])
+						ways &= FullRelevantBishopMask[King_Square] & FullRelevantBishopMask[i];
 					else
-						ways &= FullRelevantBishopMask[King_Square];
+						ways &= FullRelevantRookMask[King_Square] & FullRelevantRookMask[i];
 				}
 			}
 			else if(j == 2){//bishop
 				ways = GetBishopWay(b.occupied & RelevantBishopMask[i], i) & emptyW;
 				if(King_PinMask & 1ULL << i){
 					if(1ULL << i & FullRelevantBishopMask[King_Square])
-						ways &= FullRelevantBishopMask[King_Square];
+						ways &= FullRelevantBishopMask[King_Square] & FullRelevantBishopMask[i];
 					else
-						ways &= FullRelevantRookMask[King_Square];
+						ways &= FullRelevantRookMask[King_Square] & FullRelevantRookMask[i];
 				}
 			}
 			else if(j == 3){//queen
@@ -245,9 +245,9 @@ output movegen(bitboard b){// kinght check should be added
 				//PrintBitBoard(FullRelevantBishopMask[i] & 1ULL << King_Square);
 				if(King_PinMask & 1ULL << i){
 					if(1ULL << i & FullRelevantBishopMask[King_Square])
-						ways &= FullRelevantBishopMask[King_Square];
+						ways &= FullRelevantBishopMask[King_Square] & FullRelevantBishopMask[i];
 					else
-						ways &= FullRelevantRookMask[King_Square];
+						ways &= FullRelevantRookMask[King_Square] & FullRelevantRookMask[i];
 				}
 			}
 			if(1ULL << i & King_PinMask){
@@ -312,19 +312,19 @@ output movegen(bitboard b){// kinght check should be added
 			else if(j == 6){//rook
 				ways = GetRookWay(b.occupied & RelevantRookMask[i], i) & ~b.boccupied;
 				if(King_PinMask & 1ULL << i){
-					if(1ULL << i & FullRelevantRookMask[King_Square])
-						ways &= FullRelevantRookMask[King_Square];
+					if(1ULL << i & FullRelevantBishopMask[King_Square])
+						ways &= FullRelevantBishopMask[King_Square] & FullRelevantBishopMask[i];
 					else
-						ways &= FullRelevantBishopMask[King_Square];
+						ways &= FullRelevantRookMask[King_Square] & FullRelevantRookMask[i];
 				}
 			}
 			else if(j == 8){//bishop
 				ways = GetBishopWay(b.occupied & RelevantBishopMask[i], i) & ~b.boccupied;
 				if(King_PinMask & 1ULL << i){
 					if(1ULL << i & FullRelevantBishopMask[King_Square])
-						ways &= FullRelevantBishopMask[King_Square];
+						ways &= FullRelevantBishopMask[King_Square] & FullRelevantBishopMask[i];
 					else
-						ways &= FullRelevantRookMask[King_Square];
+						ways &= FullRelevantRookMask[King_Square] & FullRelevantRookMask[i];
 				}
 			}
 			else if(j == 9){//queen
@@ -332,9 +332,9 @@ output movegen(bitboard b){// kinght check should be added
 				ways |= GetBishopWay(b.occupied & RelevantBishopMask[i], i) & ~b.boccupied;
 				if(King_PinMask & 1ULL << i){
 					if(1ULL << i & FullRelevantBishopMask[King_Square])
-						ways &= FullRelevantBishopMask[King_Square];
+						ways &= FullRelevantBishopMask[King_Square] & FullRelevantBishopMask[i];
 					else
-						ways &= FullRelevantRookMask[King_Square];
+						ways &= FullRelevantRookMask[King_Square] & FullRelevantRookMask[i];
 				}
 			}
 			if(1ULL << i & King_PinMask){
