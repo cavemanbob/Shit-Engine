@@ -340,7 +340,7 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 		//swap pawn to target piece
 		*(&b.wp + !side * 6) ^= 1ULL << from;
 		*(&b.wr + piece) |= 1ULL << from;
-		b.key |= (piece + 1) << 28; // +1 for str and no null
+		b.key |= (piece - !side * 6 + 1) << 28; // +1 for str and no null
 	}	
 
 	if(BitCheck(b.occupied, to) == 1){ // Capture
