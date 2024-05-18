@@ -1,5 +1,5 @@
 
-float Evaluate(bitboard b){
+float Evaluate(position b){
 	float mg[2] = {}; // black 0 white 1
 	float eg[2] = {};
 	

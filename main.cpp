@@ -29,7 +29,7 @@ int main(){
 	Init_pestos();
 	srand(time(NULL));
 	
-	bitboard x = {};
+	position x = {};
 	//char str[] = "r3k3/p1ppqp2/bnN1pnp1/3P3r/1p2P3/5Q2/PPPBBPpP/R2NK2R b KQq - 3 5";
 	//char str[] = "2b5/p1nNBp1p/1bp2PPr/3P4/kPpRnr1P/3B1Ppp/3P1pQP/1R1N3K b - b3 0 3";
  char* benchmarkfens[52] = {
@@ -107,16 +107,9 @@ int main(){
 	//}
 	//std::cout << "moves: " << m.from.size() << std::endl;
 
+
+		
 	Uci();
-	//PrintBitBoard(~AFILEMASK & ~0ULL);
-	/*
-	InitFullBishopAttacks();
-	InitFullRookAttacks();
-	for(int i = 0; i < 64; i++){
-		PrintBitBoard(FullRelevantRookMask[i]);
-		PrintBitBoard(FullRelevantBishopMask[i]);
-		std::cout << i << "\n\n";
-	}*/
 
 	return 0;
 }

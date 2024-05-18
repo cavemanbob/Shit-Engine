@@ -2,11 +2,11 @@ inline bool BitCheck(u64 x, int s){
 	return 1ULL << s & x;
 }
 
-inline u64 BitCount(u64 x){
+inline u8 BitCount(u64 x){
 	return __builtin_popcountll(x);
 }
 // _builtin_ctzll(x)
-inline u64 Ls1bIndex(u64 x){
+inline u8 Ls1bIndex(u64 x){
 		return __builtin_ffsll(x) - 1;
 }
 
@@ -84,7 +84,7 @@ void PrintBitBoard(u64 b){
 	std::cout << '\n';
 }
 
-void ReadableBoard(bitboard b){
+void ReadableBoard(position b){
 	std::string StrPieces = "RNBQKPrnbqkp";
 	for(int i=7; i>=0; i--){
 		std::cout << i+1 << ' ';

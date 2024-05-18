@@ -1,5 +1,5 @@
 
-void ApplyFen(bitboard *b, char *fen){
+void ApplyFen(position *b, char *fen){
 	*b = {};
 	if(strncmp(fen, "startpos", 8) == 0) fen = START_FEN;
 	char pieces[] = "RNBQKPrnbqkp";
@@ -71,7 +71,12 @@ void ApplyFen(bitboard *b, char *fen){
 	}
 }
 
-int Perft(bitboard b, int depth){
+int Perft(position b, int depth){
+	if(depth == 1){
+		Movelist  m;
+		movegen(&m, b);
+		return m.Stack_size;
+	}
 	if(depth == 0) return 1;
 	Movelist  m;
 	movegen(&m, b);
@@ -82,7 +87,7 @@ int Perft(bitboard b, int depth){
 	return MoveCount;
 }
 
-bitboard NotationMove(bitboard b, char *inp){
+position NotationMove(position b, char *inp){
 	char alphabet[] = "abcdefgh";
 	int from = 0, to = 0;
 	from += strchr(alphabet, inp[0]) - alphabet;
@@ -116,7 +121,7 @@ void Uci(){
 	srand(time(NULL));
 
 	char text[TEXT_BUFFER] = {};
-	bitboard x = {};
+	position x = {};
 	struct game _game = {};
 	while(strcmp(text, "quit") != 0){
 		FILE *fptr = fopen("f.txt", "a");
@@ -199,7 +204,10 @@ void Uci(){
 		}
 		else if(strcmp(t, "eval") == 0){
 			t = strtok(NULL, " \n");
-			if(t){
+			if(strcmp(t, "current") == 0){
+				std::cout << "value " << Evaluate(x) << std::endl;
+			}
+			else if(t){
 				ApplyFen(&x, t);
 				std::cout << "value " << Evaluate(x) << std::endl;
 			}
@@ -210,9 +218,10 @@ void Uci(){
 		else if(strcmp(t, "perft") == 0){
 			clock_t ct = clock();
 			t = strtok(NULL, " \n");
+			if(t == NULL) continue;
 			Movelist  m;
 			movegen(&m, x);
-			int MoveCount = 0;
+			u64 MoveCount = 0;
 			if(std::stoi(t) == 1){
 				for(int i = 0; i < m.Stack_size; i++){
 					std::cout << ctos(m.list[i].from) << ctos(m.list[i].to) << Promoting_str[FromTo(x, m.list[i]).key >> 28 & 0b111] << " 1" << std::endl;
@@ -221,8 +230,7 @@ void Uci(){
 			}
 			else{
 				for(int i=0; i < m.Stack_size; i++){
-					int Current_Perft = Perft(FromTo(x, m.list[i]), std::stoi(t) - 1);
-					//printf("%s%s: %d\n",ctos(m.from[i]),ctos(m.to[i]), Current_Perft);
+					u64 Current_Perft = Perft(FromTo(x, m.list[i]), std::stoi(t) - 1);
 					std::cout << ctos(m.list[i].from) << ctos(m.list[i].to) << Promoting_str[FromTo(x, m.list[i]).key >> 28 & 0b111] << " " << Current_Perft << std::endl;
 					MoveCount += Current_Perft;
 				}

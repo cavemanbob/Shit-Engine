@@ -1,7 +1,7 @@
 
 
 
-inline int is_square_attacked(bitboard b, int sqi){
+inline int is_square_attacked(position b, u8 sqi){
 	int side = b.key >> 8 & 1ULL;
 	const u64 sq = 1ULL << sqi;
 	const int Piece_Buffer = (side == WHITE) ? 6 : 0;
@@ -23,7 +23,7 @@ inline int is_square_attacked(bitboard b, int sqi){
 	
 	return 0;
 }
-inline int is_square_attacked(bitboard b, int sqi, int side){
+inline int is_square_attacked(position b, u8 sqi, u8 side){
 	const u64 sq = 1ULL << sqi;
 	const int Piece_Buffer = (side == WHITE) ? 6 : 0;
 	if(side == WHITE){ 
@@ -43,11 +43,11 @@ inline int is_square_attacked(bitboard b, int sqi, int side){
 	
 	return 0;
 }
-inline int square_attacked_times(bitboard b, int sqi){
-	int side = b.key >> 8 & 1ULL;
+inline int square_attacked_times(position b, u8 sqi){
+	const u8 side = b.key >> 8 & 1ULL;
 	const u64 sq = 1ULL << sqi;
 	const int Piece_Buffer = side == WHITE ? 6 : 0;
-	int times = 0;
+	u8 times = 0;
 	if(side == WHITE){ 
 		if(((~AFILEMASK & b.bp) >> 9 | (~HFILEMASK & b.bp) >> 7) & sq) times++;
 	}
@@ -66,10 +66,10 @@ inline int square_attacked_times(bitboard b, int sqi){
 
 }
 
+// idk which one should come first 
+position FromTo(position b, move x);
 
-bitboard FromTo(bitboard b, move x); // idk which one should come first 
-
-bitboard FromTo(bitboard b, int from, int to, int piece){
+position FromTo(position b, int from, int to, int piece){
 	//const u64 from = x.from;
 	//const u64 to = x.to;
 	//u64 piece = x.PieceType;
@@ -172,12 +172,12 @@ bitboard FromTo(bitboard b, int from, int to, int piece){
 
 
 
-void movegen(Movelist *r, bitboard b){// r must be empty or make them empty now
+void movegen(Movelist *r, position b){// r must be empty or make them empty now
 	int side = b.key >> 8 & 1ULL;
 	//note use pawn pushes not in while
 	u64 pcw = 255ULL << 16;
 	u64 pcb = 255ULL << 40;
-	u64 eps = (b.key >> 20) & 0b1111111;
+	const u8 eps = (b.key >> 20) & 0b1111111;
 	*r = {};
 	//Movelist *r = (Movelist *)malloc(sizeof(Movelist));
 	const u64 empty = ~b.occupied;
@@ -252,12 +252,13 @@ void movegen(Movelist *r, bitboard b){// r must be empty or make them empty now
 	if(square_attacked_times(b,King_Square) > 1){// double check
 		AntiCheckMask = 0ULL;
 	}
+	// core movegen
 	if(side == WHITE){
-		bitboard NoKingb = b;
+		position NoKingb = b;
 		NoKingb.wk = 0ULL;
 		NoKingb.occupied &= ~(1ULL << King_Square);
 		while(targets){
-			u64 i = Ls1bIndex(targets), j;
+			u8 i = Ls1bIndex(targets), j;
 			for(j=0; j<6; j++)if(BitCheck(*(&b.wr + j),i))break;
 			u64 ways = 0ULL;
 			if(j == 5){ //pawn
@@ -278,9 +279,9 @@ void movegen(Movelist *r, bitboard b){// r must be empty or make them empty now
 				if(1ULL << i & King_PinMask)	ways &= King_PinMask;
 				
 				while(ways & RANK8MASK & AntiCheckMask){ //promotion moves
-					const u64 pro_to = Ls1bIndex(ways & RANK8MASK & AntiCheckMask);
-					for(u64 pro_type = 0; pro_type < 4; pro_type++){
-						move k = {i, pro_to, 14 + pro_type};
+					const u8 pro_to = Ls1bIndex(ways & RANK8MASK & AntiCheckMask);
+					for(u8 pro_type = 0; pro_type < 4; pro_type++){
+						move k = {i, pro_to, pro_type + 14};
 						MoveList_Add(r, k);
 					}
 					ways &= (ways & RANK8MASK & AntiCheckMask) - 1;
@@ -345,11 +346,11 @@ void movegen(Movelist *r, bitboard b){// r must be empty or make them empty now
 		}
 	}
 	else{
-		bitboard NoKingb = b;
+		position NoKingb = b;
 		NoKingb.bk = 0ULL;
 		NoKingb.occupied &= ~(1ULL << King_Square);
 		while(targets){
-			u64 i = Ls1bIndex(targets), j;
+			u8 i = Ls1bIndex(targets), j;
 			u64 ways = 0ULL;
 			for(j=6; j<12; j++)if(BitCheck(*(&b.wr + j),i))break;
 			if(j == 11){ //pawn
@@ -370,8 +371,8 @@ void movegen(Movelist *r, bitboard b){// r must be empty or make them empty now
 				if(1ULL << i & King_PinMask)	ways &= King_PinMask;
 				
 				while(ways & RANK1MASK & AntiCheckMask){ //promotion moves
-					const u64 pro_to = Ls1bIndex(ways & RANK1MASK & AntiCheckMask);
-					for(u64 pro_type = 0; pro_type < 4; pro_type++){
+					const u8 pro_to = Ls1bIndex(ways & RANK1MASK & AntiCheckMask);
+					for(u8 pro_type = 0; pro_type < 4; pro_type++){
 						move k = {i, pro_to, 14 + pro_type};
 						MoveList_Add(r, k);
 					}
@@ -455,12 +456,12 @@ void movegen(Movelist *r, bitboard b){// r must be empty or make them empty now
 }
 
 
-bitboard FromTo(bitboard b, move x){
-	const u64 from = x.from;
-	const u64 to = x.to;
-	u64 piece = x.PieceType;
+position FromTo(position b, move x){
+	const u8 from = x.from;
+	const u8 to = x.to;
+	u8 piece = x.PieceType;
 	//u64 side = piece < 6 ? WHITE : BLACK;
-	u64 side = (b.key >> 8) & 1ULL;
+	u8 side = (b.key >> 8) & 1ULL;
 	b.key ^= 1ULL << 8; //swap bit change turn
 	
 	if(piece == En_B){ // enpass
@@ -556,7 +557,7 @@ bitboard FromTo(bitboard b, move x){
 	return b;
 }
 
-int OnCheck(bitboard b){ //reversed side (who do move, for other side is check control)
+int OnCheck(position b){ //reversed side (who do move, for other side is check control)
 	int side = b.key >> 8 & 1ULL;
 	side ^= 1ULL; //swap
 	int King_Captured = 0;

@@ -16,7 +16,7 @@ typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
 
-struct bitboard{
+struct position{
 	u64 occupied;
 	u64 woccupied;
 	u64 boccupied;
@@ -77,7 +77,7 @@ enum PieceType : u64{
 	ROOK, KNIGHT, BISHOP, QUEEN, KING, PAWN
 };
 
-enum Piece : u64{
+enum Piece : u8{
 	ROOK_W=0, KNIGHT_W = 1, BISHOP_W = 2, QUEEN_W = 3, KING_W = 4, PAWN_W = 5,
 	ROOK_B=6, KNIGHT_B = 7, BISHOP_B = 8, QUEEN_B = 9, KING_B = 10, PAWN_B = 11,
 	En_W = 12, En_B = 13, Pro_R = 14, Pro_N = 15, Pro_B = 16, Pro_Q = 17
@@ -85,7 +85,7 @@ enum Piece : u64{
 
 const char Promoting_str[8] = " rnbq";
 
-enum Promoting_Flag : u64{
+enum Promoting_Flag : u8{
 	NOPROMATE = 0ULL, ROOK_PROMATE = 1ULL, KNIGHT_PROMATE = 2ULL, BISHOP_PROMATE = 3ULL, QUEEN_PROMATE = 4ULL
 };
 
@@ -133,9 +133,9 @@ u64 Node_Total = 0;
 
 
 struct move{
-	u64 from;
-	u64 to;
-	u64 PieceType;
+	u8 from;
+	u8 to;
+	u8 PieceType;
 };
 
 struct Movelist{
