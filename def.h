@@ -73,11 +73,11 @@ u64 BishopBase[64][4096];
 u64 BishopMagics[64] = {};
 u64 FullRelevantRookMask[64]={};// added corners
 u64 FullRelevantBishopMask[64]={};// added corners
-enum PieceType : int{
+enum PieceType : u64{
 	ROOK, KNIGHT, BISHOP, QUEEN, KING, PAWN
 };
 
-enum Piece : int{
+enum Piece : u64{
 	ROOK_W=0, KNIGHT_W = 1, BISHOP_W = 2, QUEEN_W = 3, KING_W = 4, PAWN_W = 5,
 	ROOK_B=6, KNIGHT_B = 7, BISHOP_B = 8, QUEEN_B = 9, KING_B = 10, PAWN_B = 11,
 	En_W = 12, En_B = 13, Pro_R = 14, Pro_N = 15, Pro_B = 16, Pro_Q = 17
@@ -104,12 +104,12 @@ u64 state = 11349138731524945662ULL; //seed
 //#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 char START_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-
+/*
 struct output{
 	std::vector<int> from;
 	std::vector<int> to;
 	std::vector<int> PieceType;
-};
+};*/
 
 enum Val : int{
 	PAWN_VAL = 100,
@@ -130,6 +130,26 @@ struct game{
 	u32 movestogo;
 };
 u64 Node_Total = 0;
+
+
+struct move{
+	u64 from;
+	u64 to;
+	u64 PieceType;
+};
+
+struct Movelist{
+	move list[256];
+	int Stack_size;
+};
+inline void MoveList_Add(Movelist *movelist, move x){
+	movelist->list[movelist->Stack_size++] = x;
+}
+inline void MoveList_free(Movelist *movelist){
+	free(movelist->list);
+	free(movelist);
+}
+
 
 int Pos_Val_Table[64 * 6] = {
 				35,  29,  33,   4,  37,  33,  56,  50, //rook

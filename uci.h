@@ -73,15 +73,11 @@ void ApplyFen(bitboard *b, char *fen){
 
 int Perft(bitboard b, int depth){
 	if(depth == 0) return 1;
-	//std::cout << ((b.key >> 20 & 0b11111111)) << std::endl;
-	output m = movegen(b);
+	Movelist  m;
+	movegen(&m, b);
 	int MoveCount = 0;
-	for(int i=0; i < m.from.size(); i++){
-		//if(b.bk & 1ULL << 58){
-		  	//ReadableBoard(FromTo(b, m.from[i], m.to[i], m.PieceType[i]));
-			//for(int j = 0; j < 15; j++)PrintBitBoard(*(&b.occupied + j));
-		//}
-		MoveCount += Perft(FromTo(b, m.from[i], m.to[i], m.PieceType[i]), depth - 1);
+	for(int i=0; i < m.Stack_size; i++){
+		MoveCount += Perft(FromTo(b, m.list[i]), depth - 1);
 	}
 	return MoveCount;
 }
@@ -214,38 +210,26 @@ void Uci(){
 		else if(strcmp(t, "perft") == 0){
 			clock_t ct = clock();
 			t = strtok(NULL, " \n");
-			output m = movegen(x);
+			Movelist  m;
+			movegen(&m, x);
 			int MoveCount = 0;
 			if(std::stoi(t) == 1){
-				for(int i = 0; i < m.from.size(); i++){
-					//if(m.from[i] == 60 && m.to[i] == 58){
-						//ReadableBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]));
-						//for(int j = 0; j < 15; j++)PrintBitBoard(*(&x.occupied + j));
-					//}
-					std::cout << ctos(m.from[i]) << ctos(m.to[i]) << Promoting_str[FromTo(x, m.from[i], m.to[i], m.PieceType[i]).key >> 28 & 0b111] << " 1" << std::endl;
+				for(int i = 0; i < m.Stack_size; i++){
+					std::cout << ctos(m.list[i].from) << ctos(m.list[i].to) << Promoting_str[FromTo(x, m.list[i]).key >> 28 & 0b111] << " 1" << std::endl;
 				}
-				std::cout << "move" << m.from.size() << std::endl;
+				std::cout << "move" << m.Stack_size << std::endl;
 			}
 			else{
-				for(int i=0; i < m.from.size(); i++){
-				/*	if(m.from[i] == 56 && m.to[i] == 57) {
-						ReadableBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]));
-						//PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).wr);
-						//PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).woccupied);
-						PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).occupied);
-						PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).br);
-						PrintBitBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]).boccupied);
-						std::cout << "flag " << ((FromTo(x, m.from[i], m.to[i], m.PieceType[i]).key & 0b1111 << 9) >> 9) << std::endl;
-					}*/
-					int Current_Perft = Perft(FromTo(x, m.from[i], m.to[i], m.PieceType[i]), std::stoi(t) - 1);
+				for(int i=0; i < m.Stack_size; i++){
+					int Current_Perft = Perft(FromTo(x, m.list[i]), std::stoi(t) - 1);
 					//printf("%s%s: %d\n",ctos(m.from[i]),ctos(m.to[i]), Current_Perft);
-					std::cout << ctos(m.from[i]) << ctos(m.to[i]) << Promoting_str[FromTo(x, m.from[i], m.to[i], m.PieceType[i]).key >> 28 & 0b111] << " " << Current_Perft << std::endl;
+					std::cout << ctos(m.list[i].from) << ctos(m.list[i].to) << Promoting_str[FromTo(x, m.list[i]).key >> 28 & 0b111] << " " << Current_Perft << std::endl;
 					MoveCount += Current_Perft;
 				}
 				std::cout << "depth " << std::stoi(t) << " total " << MoveCount << std::endl;
 			}
 			ct = clock() - ct;
-			std::cout << ((double)ct)/CLOCKS_PER_SEC << std::endl;	
+			std::cout << ((double)ct)/CLOCKS_PER_SEC << std::endl;
 		}
 		fclose(fptr);
 	}

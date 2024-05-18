@@ -6,7 +6,7 @@ inline u64 BitCount(u64 x){
 	return __builtin_popcountll(x);
 }
 // _builtin_ctzll(x)
-inline int Ls1bIndex(u64 x){
+inline u64 Ls1bIndex(u64 x){
 		return __builtin_ffsll(x) - 1;
 }
 
