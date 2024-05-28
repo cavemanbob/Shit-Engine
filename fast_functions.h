@@ -111,3 +111,7 @@ void ReadableBoard(position b){
 	}
 	std::cout << "  A B C D E F G H\n\n";
 }
+
+inline int SwapSide(u8 side){
+	return (side == WHITE) ? BLACK : WHITE;
+}

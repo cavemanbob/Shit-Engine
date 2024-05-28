@@ -76,6 +76,9 @@ position FromTo(position b, u8 from, u8 to, u8 piece){
 	//u64 side = piece < 6 ? WHITE : BLACK;
 	u64 side = (b.key >> 8) & 1ULL;
 	b.key ^= 1ULL << 8; //swap bit change turn
+	b.key += 1; // MoveCounter + 1
+	
+	b.key &= ~(1ULL << 31); // capture flag reset
 	
 	if(piece == En_B){ // enpass
 		b.occupied ^= 1ULL << to + 8;
@@ -119,7 +122,7 @@ position FromTo(position b, u8 from, u8 to, u8 piece){
 					break;
 				}
 		}
-		//b.key |= 1ULL << 31;
+		b.key |= 1ULL << 31; // capture flag
 	}
 	else{ // move
 		b.occupied ^= 1ULL << to;
@@ -179,7 +182,10 @@ position FromTo(position b, move x){
 	//u64 side = piece < 6 ? WHITE : BLACK;
 	u8 side = (b.key >> 8) & 1ULL;
 	b.key ^= 1ULL << 8; //swap bit change turn
+	b.key += 1; // MoveCounter + 1
 	
+	b.key &= ~(1ULL << 31); // capture flag reset
+
 	if(piece == En_B){ // enpass
 		b.occupied ^= 1ULL << to + 8;
 		b.woccupied ^= 1ULL << to + 8;
@@ -222,8 +228,7 @@ position FromTo(position b, move x){
 					break;
 				}
 		}
-		//b.key |= 1ULL << 31;
-		//b.key |= 1ULL << 31; // capture flag
+		b.key |= 1ULL << 31; // capture flag
 	}
 	else{ // move
 		b.occupied ^= 1ULL << to;

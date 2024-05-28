@@ -188,6 +188,7 @@ void Uci(){
 				_depth = SEARCH_DEPTH_LONG_TIME;
 			}
 			//infos
+			clock_t ct = clock();
 			std::cout << "info depth " << _depth << std::endl;
 			ScoredMove Picked_move = Next(x, _depth);
 			x = FromTo(x, Picked_move.move);
@@ -196,7 +197,8 @@ void Uci(){
 			std::cout << "info nodes " << Node_Total << std::endl;
 			std::cout << "bestmove " << bestmove << ((x.key >> 28 & 7ULL) ? Promoting_str[x.key >> 28 & 7ULL] : ' ') << std::endl;
 			std::cout << "info pv " << bestmove << " ";
-			for(;_depth > 0; --_depth){
+			for(_depth = _depth - 1;_depth > 0; _depth--){
+				std::cout << "depth" << _depth;
 				Picked_move = Next(x, _depth);
 				x = FromTo(x, Picked_move.move);
 				bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
@@ -204,6 +206,8 @@ void Uci(){
 			}
 			std::cout << std::endl;
 			x = _x; // go back
+			ct = clock() - ct;
+			std::cout << "info string " << ((double)ct)/CLOCKS_PER_SEC << "sec" << std::endl;
 
 		}
 		else if(strcmp(t, "d") == 0){

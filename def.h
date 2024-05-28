@@ -35,17 +35,18 @@ struct position{
 	u64 bk;
 	u64 bp;
 
-	u32 key; // 7-0 -> move counter / 8 -> turn / 12-9 -> castling / 19-13 -> fifty move
+	u64 key; // 7-0 -> move counter / 8 -> turn / 12-9 -> castling / 19-13 -> fifty move
 				// castling 1111 -> W_OO W_OOO B_OO B_OOO
 				// 20-27 -> enpassant
 				// turn white 1 black 0
 				// promating 28-30 || 1Q 2R 3B 4N
-				// overlapped 31
+				// CAPTURED 31
+				// CHECKS 32
+				// Reductioned 33
 
 	//u8 to_square;
 #ifdef DEBUG
 	u8 oldsquare;
-	//u8 overlap;
 #endif
 
 };
@@ -133,7 +134,7 @@ struct game{
 	u32 movestogo;
 };
 u64 Node_Total = 0;
-
+u8 Move_Counter = 0; // move for current fen
 
 struct move{
 	u8 from;
