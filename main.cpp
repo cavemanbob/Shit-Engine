@@ -99,15 +99,18 @@ int main(){
 	//ReadableBoard(x);
 	//output m = movegen(x);
 	std::cout << is_square_attacked(FromTo(x, 26, 17, En_B), 24) << std::endl;
-	x = FromTo(x, 26, 17, En_B);
+	x = FromTo(x, 26, 17, En_B);_game.wtime < 30000 || _game.btime < 30000
 		  	ReadableBoard(x);*/
 			//for(int j = 0; j < 15; j++)PrintBitBoard(*(&x.occupied + j));
 	//for(int i =0; i < m.from.size(); i++){
 		//ReadableBoard(FromTo(x, m.from[i], m.to[i], m.PieceType[i]));
 	//}
 	//std::cout << "moves: " << m.from.size() << std::endl;
-
-
+	//r2qkb1r/5pp1/p1p2n1p/2pp2N1/4p1b1/2N1P3/PPPP1P1P/R1BQK2R w KQkq - 0 13
+	//position x;
+	//ApplyFen(&x, START_FEN);
+	//x = FromTo(x, 8, 24, PAWN_W);
+	//std::cout << (int)x.to_square;
 		
 	Uci();
 

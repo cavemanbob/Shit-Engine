@@ -151,7 +151,7 @@ void Uci(){
 			//t = strtok(NULL, " \n");
 		}
 		else if(strcmp(t, "go") == 0){
-			int Did_Next = 0;
+			int _depth = 1;
 			t = strtok(NULL, " \n");
 			while(t){
 				if(strcmp(t, "wtime") == 0){
@@ -174,19 +174,37 @@ void Uci(){
 					t = strtok(NULL, " \n");
 					_game.movestogo = std::stoi(t);
 				}
-				else if(strcmp(t, "go") == 0){
-					t = strtok(NULL, " \n");
-					if(std::stoi(t) < 8){
-						x = Next(x, std::stoi(t));
-					}
-					else{
-						x = Next(x, SEARCH_DEPTH_LONG_TIME);
-					}
-					Did_Next = 1;
+				else if(isdigit(*t) == 1){
+					_depth = std::stoi(t);
 				}
+			//if(Did_Next == 0)if(_game.wtime < 30000 || _game.btime < 30000) x = Next(x, SEARCH_DEPTH_LOW_TIME); else x = Next(x, SEARCH_DEPTH_LONG_TIME);
 				t = strtok(NULL, " \n");
 			}
-			if(Did_Next == 0)if(_game.wtime < 30000 || _game.btime < 30000) x = Next(x, SEARCH_DEPTH_LOW_TIME); else x = Next(x, SEARCH_DEPTH_LONG_TIME);
+			//time control
+			if(_depth == 1 && (_game.wtime < 30000 || _game.btime < 30000)){
+				_depth = SEARCH_DEPTH_LOW_TIME;
+			}
+			else if(_depth == 1){
+				_depth = SEARCH_DEPTH_LONG_TIME;
+			}
+			//infos
+			std::cout << "info depth " << _depth << std::endl;
+			ScoredMove Picked_move = Next(x, _depth);
+			x = FromTo(x, Picked_move.move);
+			position _x = x;
+			bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
+			std::cout << "info nodes " << Node_Total << std::endl;
+			std::cout << "bestmove " << bestmove << ((x.key >> 28 & 7ULL) ? Promoting_str[x.key >> 28 & 7ULL] : ' ') << std::endl;
+			std::cout << "info pv " << bestmove << " ";
+			for(;_depth > 0; --_depth){
+				Picked_move = Next(x, _depth);
+				x = FromTo(x, Picked_move.move);
+				bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
+				std::cout << " " << bestmove << ((x.key >> 28 & 7ULL) ? Promoting_str[x.key >> 28 & 7ULL] : ' ');
+			}
+			std::cout << std::endl;
+			x = _x; // go back
+
 		}
 		else if(strcmp(t, "d") == 0){
 			ReadableBoard(x);

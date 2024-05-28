@@ -69,7 +69,7 @@ inline int square_attacked_times(position b, u8 sqi){
 // idk which one should come first 
 position FromTo(position b, move x);
 
-position FromTo(position b, int from, int to, int piece){
+position FromTo(position b, u8 from, u8 to, u8 piece){
 	//const u64 from = x.from;
 	//const u64 to = x.to;
 	//u64 piece = x.PieceType;
@@ -119,6 +119,7 @@ position FromTo(position b, int from, int to, int piece){
 					break;
 				}
 		}
+		//b.key |= 1ULL << 31;
 	}
 	else{ // move
 		b.occupied ^= 1ULL << to;
@@ -167,6 +168,111 @@ position FromTo(position b, int from, int to, int piece){
 #ifdef DEBUG
 	b.oldsquare = from;
 #endif
+	//b.to_square = to;
+	return b;
+}
+
+position FromTo(position b, move x){
+	const u8 from = x.from;
+	const u8 to = x.to;
+	u8 piece = x.PieceType;
+	//u64 side = piece < 6 ? WHITE : BLACK;
+	u8 side = (b.key >> 8) & 1ULL;
+	b.key ^= 1ULL << 8; //swap bit change turn
+	
+	if(piece == En_B){ // enpass
+		b.occupied ^= 1ULL << to + 8;
+		b.woccupied ^= 1ULL << to + 8;
+		b.wp ^= 1ULL << to + 8;
+		piece = PAWN_B;
+	}
+	else if(piece == En_W){ // enpass
+		b.occupied ^= 1ULL << to - 8;
+		b.boccupied ^= 1ULL << to - 8;
+		b.bp ^= 1ULL << to - 8;
+		piece = PAWN_W;
+	}
+	//promotion
+	else if (piece > 13) {
+		piece = piece - 14 + !side * 6;
+		//std::cout << "piece " << piece << std::endl;
+		//swap pawn to target piece
+		*(&b.wp + !side * 6) ^= 1ULL << from;
+		*(&b.wr + piece) |= 1ULL << from;
+		b.key |= (piece - !side * 6 + 1) << 28; // +1 for str and no null
+	}	
+
+	if(BitCheck(b.occupied, to) == 1){ // Capture
+		if(side == WHITE) 
+			b.boccupied ^= 1ULL << to;
+		else 
+			b.woccupied ^= 1ULL << to;
+
+		if(side == WHITE){
+			for(int i=0; i < 6; i++)
+				if(BitCheck(*(&b.br + i), to) == 1){
+					*(&b.br + i) ^= 1ULL << to;
+					break;
+				}
+		}
+		else{
+			for(int i=0; i < 6; i++)
+				if(BitCheck(*(&b.wr + i), to) == 1){
+					*(&b.wr + i) ^= 1ULL << to;
+					break;
+				}
+		}
+		//b.key |= 1ULL << 31;
+		//b.key |= 1ULL << 31; // capture flag
+	}
+	else{ // move
+		b.occupied ^= 1ULL << to;
+	}
+
+	b.occupied ^= 1ULL << from; 
+
+	if(side == WHITE){
+		b.woccupied ^= 1ULL << from; 
+		b.woccupied ^= 1ULL << to;
+	}
+	else{
+		b.boccupied ^= 1ULL << from; 
+		b.boccupied ^= 1ULL << to;
+	}
+	*(&b.wr + piece) ^= 1ULL << from;
+	*(&b.wr + piece) ^= 1ULL << to;
+
+	//castle
+	if(piece == KING_W && from == 4 && to == 6) {
+		b.key ^= 1ULL << 8; //swap turn
+		b = FromTo(b, 7, 5, ROOK_W);
+	}
+	else if(piece == KING_W && from == 4 && to == 2){
+		b.key ^= 1ULL << 8;
+		b = FromTo(b, 0, 3, ROOK_W);
+	}
+	else if(piece == KING_B && from == 60 && to == 62) {
+		b.key ^= 1ULL << 8;
+		b = FromTo(b, 63, 61, ROOK_B);
+	}
+	else if(piece == KING_B && from == 60 && to == 58){
+		b.key ^= 1ULL << 8;
+		b = FromTo(b, 56, 59, ROOK_B);
+	}
+	// no castle when rook moved
+	if(piece == ROOK_W && from == 0) b.key &= ~(1ULL << 11);
+	else if(piece == ROOK_W && from == 7) b.key &= ~(1ULL << 12);
+	else if(piece == ROOK_B && from == 56) b.key &= ~(1ULL << 9);
+	else if(piece == ROOK_B && from == 63) b.key &= ~(1ULL << 10);
+	else if(piece == KING_W) {b.key &= ~(1ULL << 12);b.key &= ~(1ULL << 11);}
+	else if(piece == KING_B) {b.key &= ~(1ULL << 10);b.key &= ~(1ULL << 9);}
+	//note add no castle when king moved (but check first is that need it)
+	//enpass
+	if((piece == PAWN_B || piece == PAWN_W) && abs((int)from / 8 - (int)to / 8) > 1 ) {b.key &= ~(0b1111111 << 20); b.key ^= to << 20;} else b.key &= ~(0b1111111 << 20); //enpassant set key
+#ifdef DEBUG
+	b.oldsquare = from;
+#endif
+	//b.to_square = to;
 	return b;
 }
 
@@ -456,106 +562,6 @@ void movegen(Movelist *r, position b){// r must be empty or make them empty now
 }
 
 
-position FromTo(position b, move x){
-	const u8 from = x.from;
-	const u8 to = x.to;
-	u8 piece = x.PieceType;
-	//u64 side = piece < 6 ? WHITE : BLACK;
-	u8 side = (b.key >> 8) & 1ULL;
-	b.key ^= 1ULL << 8; //swap bit change turn
-	
-	if(piece == En_B){ // enpass
-		b.occupied ^= 1ULL << to + 8;
-		b.woccupied ^= 1ULL << to + 8;
-		b.wp ^= 1ULL << to + 8;
-		piece = PAWN_B;
-	}
-	else if(piece == En_W){ // enpass
-		b.occupied ^= 1ULL << to - 8;
-		b.boccupied ^= 1ULL << to - 8;
-		b.bp ^= 1ULL << to - 8;
-		piece = PAWN_W;
-	}
-	//promotion
-	else if (piece > 13) {
-		piece = piece - 14 + !side * 6;
-		//std::cout << "piece " << piece << std::endl;
-		//swap pawn to target piece
-		*(&b.wp + !side * 6) ^= 1ULL << from;
-		*(&b.wr + piece) |= 1ULL << from;
-		b.key |= (piece - !side * 6 + 1) << 28; // +1 for str and no null
-	}	
-
-	if(BitCheck(b.occupied, to) == 1){ // Capture
-		if(side == WHITE) 
-			b.boccupied ^= 1ULL << to;
-		else 
-			b.woccupied ^= 1ULL << to;
-
-		if(side == WHITE){
-			for(int i=0; i < 6; i++)
-				if(BitCheck(*(&b.br + i), to) == 1){
-					*(&b.br + i) ^= 1ULL << to;
-					break;
-				}
-		}
-		else{
-			for(int i=0; i < 6; i++)
-				if(BitCheck(*(&b.wr + i), to) == 1){
-					*(&b.wr + i) ^= 1ULL << to;
-					break;
-				}
-		}
-	}
-	else{ // move
-		b.occupied ^= 1ULL << to;
-	}
-
-	b.occupied ^= 1ULL << from; 
-
-	if(side == WHITE){
-		b.woccupied ^= 1ULL << from; 
-		b.woccupied ^= 1ULL << to;
-	}
-	else{
-		b.boccupied ^= 1ULL << from; 
-		b.boccupied ^= 1ULL << to;
-	}
-	*(&b.wr + piece) ^= 1ULL << from;
-	*(&b.wr + piece) ^= 1ULL << to;
-
-	//castle
-	if(piece == KING_W && from == 4 && to == 6) {
-		b.key ^= 1ULL << 8; //swap turn
-		b = FromTo(b, 7, 5, ROOK_W);
-	}
-	else if(piece == KING_W && from == 4 && to == 2){
-		b.key ^= 1ULL << 8;
-		b = FromTo(b, 0, 3, ROOK_W);
-	}
-	else if(piece == KING_B && from == 60 && to == 62) {
-		b.key ^= 1ULL << 8;
-		b = FromTo(b, 63, 61, ROOK_B);
-	}
-	else if(piece == KING_B && from == 60 && to == 58){
-		b.key ^= 1ULL << 8;
-		b = FromTo(b, 56, 59, ROOK_B);
-	}
-	// no castle when rook moved
-	if(piece == ROOK_W && from == 0) b.key &= ~(1ULL << 11);
-	else if(piece == ROOK_W && from == 7) b.key &= ~(1ULL << 12);
-	else if(piece == ROOK_B && from == 56) b.key &= ~(1ULL << 9);
-	else if(piece == ROOK_B && from == 63) b.key &= ~(1ULL << 10);
-	else if(piece == KING_W) {b.key &= ~(1ULL << 12);b.key &= ~(1ULL << 11);}
-	else if(piece == KING_B) {b.key &= ~(1ULL << 10);b.key &= ~(1ULL << 9);}
-	//note add no castle when king moved (but check first is that need it)
-	//enpass
-	if((piece == PAWN_B || piece == PAWN_W) && abs((int)from / 8 - (int)to / 8) > 1 ) {b.key &= ~(0b1111111 << 20); b.key ^= to << 20;} else b.key &= ~(0b1111111 << 20); //enpassant set key
-#ifdef DEBUG
-	b.oldsquare = from;
-#endif
-	return b;
-}
 
 int OnCheck(position b){ //reversed side (who do move, for other side is check control)
 	int side = b.key >> 8 & 1ULL;

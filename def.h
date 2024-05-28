@@ -40,9 +40,12 @@ struct position{
 				// 20-27 -> enpassant
 				// turn white 1 black 0
 				// promating 28-30 || 1Q 2R 3B 4N
+				// overlapped 31
 
+	//u8 to_square;
 #ifdef DEBUG
-	u64 oldsquare;
+	u8 oldsquare;
+	//u8 overlap;
 #endif
 
 };
@@ -149,6 +152,12 @@ inline void MoveList_free(Movelist *movelist){
 	free(movelist->list);
 	free(movelist);
 }
+
+struct ScoredMove{
+	move move;
+	float val;
+};
+typedef struct ScoredMove ScoredMove;
 
 
 int Pos_Val_Table[64 * 6] = {
