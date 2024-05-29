@@ -2,6 +2,7 @@
 #include "fast_functions.h"
 #include "init.h"
 #include "movegen.h"
+#include "move_order.h"
 #include "eval.h"
 #include "search.h"
 #include "uci.h"

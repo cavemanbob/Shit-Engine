@@ -45,7 +45,7 @@ struct position{
 				// Reductioned 33
 
 	//u8 to_square;
-	u8 red;
+	//u8 red;
 #ifdef DEBUG
 	u8 oldsquare;
 #endif
@@ -144,7 +144,7 @@ struct move{
 };
 
 struct Movelist{
-	move list[256];
+	move list[256 * 2]; // Move order starts from 256
 	int Stack_size;
 };
 inline void MoveList_Add(Movelist *movelist, move x){

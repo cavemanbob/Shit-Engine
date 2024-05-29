@@ -115,3 +115,7 @@ void ReadableBoard(position b){
 inline int SwapSide(u8 side){
 	return (side == WHITE) ? BLACK : WHITE;
 }
+
+inline int GetSide(u64 key){
+	return (key >> 8 & 1ULL);
+}
