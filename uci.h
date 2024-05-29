@@ -94,10 +94,16 @@ position NotationMove(position b, char *inp){
 	from += ((int)inp[1] - '0' - 1) * 8;
 	to += strchr(alphabet, inp[2]) - alphabet;
 	to += ((int)inp[3] - '0' - 1) * 8;
+	if(inp[4] != 0 && inp[4] != ' '){//promating move
+		return FromTo(b, from, to, (strchr(Promoting_str, inp[4]) - Promoting_str) + 13);
+	}
 	int piece;
 	for(piece=0; piece<12; piece++)
 		if(BitCheck(*(&b.wr + piece) , from)) 
 			break;
+	if( (piece == PAWN_W || piece == PAWN_B) && (abs((int)from % 8 - (int)to % 8) > 0) && BitCheck(b.occupied, to) == 0){
+		return FromTo(b, from, to,  (b.key & 1ULL << 8) ? En_W : En_B);
+	}
 	return FromTo(b,from,to,piece);
 }
 
@@ -188,6 +194,7 @@ void Uci(){
 				_depth = SEARCH_DEPTH_LONG_TIME;
 			}
 			//infos
+			clock_t ct = clock();
 			std::cout << "info depth " << _depth << std::endl;
 			ScoredMove Picked_move = Next(x, _depth);
 			x = FromTo(x, Picked_move.move);
@@ -196,7 +203,8 @@ void Uci(){
 			std::cout << "info nodes " << Node_Total << std::endl;
 			std::cout << "bestmove " << bestmove << ((x.key >> 28 & 7ULL) ? Promoting_str[x.key >> 28 & 7ULL] : ' ') << std::endl;
 			std::cout << "info pv " << bestmove << " ";
-			for(;_depth > 0; --_depth){
+			for(_depth = _depth - 1;_depth > 0; _depth--){
+				//std::cout << "depth" << _depth;
 				Picked_move = Next(x, _depth);
 				x = FromTo(x, Picked_move.move);
 				bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
@@ -204,6 +212,9 @@ void Uci(){
 			}
 			std::cout << std::endl;
 			x = _x; // go back
+			ct = clock() - ct;
+			std::cout << "info string " << ((double)ct)/CLOCKS_PER_SEC << "sec" << std::endl;
+			fflush(stdout);
 
 		}
 		else if(strcmp(t, "d") == 0){
@@ -215,6 +226,7 @@ void Uci(){
 		}
 		else if(strcmp(t, "isready") == 0){
 			std::cout << "readyok" << std::endl;
+			fflush(stdout);
 		}
 		else if(strcmp(t, "ucinewgame") == 0){
 			x = {};
@@ -258,5 +270,6 @@ void Uci(){
 			std::cout << ((double)ct)/CLOCKS_PER_SEC << std::endl;
 		}
 		fclose(fptr);
+		//fflush(stdout);
 	}
 }
