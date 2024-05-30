@@ -15,7 +15,7 @@ void printRemainingStack() {
 */
 
 int main(){
-		
+	
 	Uci();
 
 	return 0;

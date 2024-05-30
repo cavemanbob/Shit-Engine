@@ -161,6 +161,12 @@ struct ScoredMove{
 };
 typedef struct ScoredMove ScoredMove;
 
+u64 game_history[512] = {};
+u64 game_history_size = 0ULL;
+
+
+
+
 
 int Pos_Val_Table[64 * 6] = {
 				35,  29,  33,   4,  37,  33,  56,  50, //rook
