@@ -144,7 +144,7 @@ struct move{
 };
 
 struct Movelist{
-	move list[256 * 2]; // Move order starts from 256
+	move list[256]; // Move order starts from 256
 	int Stack_size;
 };
 inline void MoveList_Add(Movelist *movelist, move x){
