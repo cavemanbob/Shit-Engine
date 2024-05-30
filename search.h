@@ -14,6 +14,8 @@ float alphabeta(position b, int depth, float alpha, float beta){
 		float val = INT_MIN;
 		Movelist  m;
 		movegen(&m, b);
+		move_order(&b, &m);
+		if(m.Stack_size == 0) return INT_MIN;
 		for(int i=0; i < m.Stack_size; i++){
 			val = std::max(val, alphabeta(FromTo(b, m.list[i]), depth - 1, alpha, beta));
 			if (val > beta){
@@ -27,14 +29,10 @@ float alphabeta(position b, int depth, float alpha, float beta){
 		float val = INT_MAX;
 		Movelist  m;
 		movegen(&m, b);
-		//for(int i =0; i < m.Stack_size; i++) std::cout << (int)m.list[i].to << " "; std::cout << std::endl;
 		move_order(&b, &m);
-		//for(int i =0; i < m.Stack_size; i++) std::cout << (int)m.list[i].to << " " ; std::cout << std::endl;
-		//_sleep(456465);
+		if(m.Stack_size == 0) return INT_MAX;
 		for(int i=0; i < m.Stack_size; i++){
 			val = std::min(val, alphabeta(FromTo(b, m.list[i]), depth - 1, alpha, beta));
-			//ReadableBoard(FromTo(b, m.list[i]));
-			//std::cout << "val " << val << "\n\n";
 			if (val < alpha){
 				break;
 			}
@@ -53,6 +51,7 @@ ScoredMove Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOMET
 	Movelist  m;
 	movegen(&m, b);
 	move_order(&b, &m);
+	if(m.Stack_size == 0) {ScoredMove _move = {}; return _move;}
 	std::vector<ScoredMove> ScoredMove_table;
 	float val = (side == WHITE) ? INT_MIN : INT_MAX;
 	float alp = 0;

@@ -139,6 +139,7 @@ void Uci(){
 		if(strcmp(t, "uci") == 0){
 			printf("id name Shit Engine\n");
 			printf("id author Efe Burak Ostundag <Cavemanbob>\n");
+			//printf("option name Threads type spin default 1 min 1 max 1");
 			printf("uciok\n");
 			fflush(stdout);
 		}
@@ -202,10 +203,11 @@ void Uci(){
 			bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
 			std::cout << "info nodes " << Node_Total << std::endl;
 			std::cout << "bestmove " << bestmove << ((x.key >> 28 & 7ULL) ? Promoting_str[x.key >> 28 & 7ULL] : ' ') << std::endl;
-			std::cout << "info pv " << bestmove << " ";
+			std::cout << "info pv ";
 			for(_depth = _depth - 1;_depth > 0; _depth--){
 				//std::cout << "depth" << _depth;
 				Picked_move = Next(x, _depth);
+				if(Picked_move.move.to == Picked_move.move.from) break;
 				x = FromTo(x, Picked_move.move);
 				bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
 				std::cout << " " << bestmove << ((x.key >> 28 & 7ULL) ? Promoting_str[x.key >> 28 & 7ULL] : ' ');
