@@ -43,55 +43,6 @@ float alphabeta(position b, int depth, float alpha, float beta){
 
 }
 
-ScoredMove Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOMETHING LIKE THAT ????????
-	//printf("info depth %d\n",depth);
-	Node_Total = 0;
-	Move_Counter = b.key & 0b1111111;
-	int side = b.key >> 8 & 1ULL;
-	Movelist  m;
-	movegen(&m, b);
-	move_order(&b, &m);
-	if(m.Stack_size == 0) {ScoredMove _move = {}; return _move;}
-	std::vector<ScoredMove> ScoredMove_table;
-	float val = (side == WHITE) ? INT_MIN : INT_MAX;
-	float alp = 0;
-	for(int i=0; i < m.Stack_size; i++){
-		if(side == WHITE){
-			alp = alphabeta(FromTo(b, m.list[i]), depth - 1, INT_MIN, INT_MAX);
-			ScoredMove _move = {m.list[i], alp};
-			ScoredMove_table.push_back(_move);
-			if(val < alp){
-				val = alp;
-			}
-		}
-		else{
-			alp = alphabeta(FromTo(b, m.list[i]), depth - 1, INT_MIN, INT_MAX);
-			//ReadableBoard(FromTo(b, m.list[i])); std::cout << "alp " << alp << std::endl;
-			ScoredMove _move = {m.list[i], alp};
-			ScoredMove_table.push_back(_move);
-			if(val > alp){
-				val = alp;
-			}
-		}
-	}
-	//std::cout << "val: " << val << std::endl;
-	//for(int i=0; i < ScoredMove_table.size(); i++){ReadableBoard(FromTo(b, m.list[i]));std::cout << ScoredMove_table[i].val << std::endl;}
-	// Pick random max or min value between them
-	std::vector<ScoredMove> Max_Moves;
-	for(int i = 0; i < ScoredMove_table.size(); i++){
-		if(ScoredMove_table[i].val == val) Max_Moves.push_back(ScoredMove_table[i]);
-	}
-	ScoredMove Picked_move = Max_Moves[rand() % Max_Moves.size()];
-	return Picked_move;
-	/*
-	position Selected_Board = FromTo(b, Picked_move.move);
-	bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
-	//infos
-	std::cout << "info nodes " << Node_Total << " string " << Picked_move.val << std::endl; 
-	//best move
-	std::cout << "bestmove " << bestmove << ((Selected_Board.key >> 28 & 7ULL) ? Promoting_str[Selected_Board.key >> 28 & 7ULL] : ' ') << std::endl;
-	return FromTo(b, Picked_move.move);*/
-}
 
 
 

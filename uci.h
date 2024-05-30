@@ -1,6 +1,10 @@
 
 void ApplyFen(position *b, char *fen){
 	*b = {};
+	//game_history = {};
+	for(int i = 0; i < game_history_size; i++) game_history[i] = 0;
+	game_history_size = 0;
+
 	if(strncmp(fen, "startpos", 8) == 0) fen = START_FEN;
 	char pieces[] = "RNBQKPrnbqkp";
 	char strfen[200];
@@ -108,6 +112,7 @@ position NotationMove(position b, char *inp){
 }
 
 
+
 #define SEARCH_DEPTH_LONG_TIME 6
 #define SEARCH_DEPTH_LOW_TIME 5
 #define TEXT_BUFFER 3000
@@ -146,12 +151,14 @@ void Uci(){
 		else if(strcmp(t, "position") == 0){
 			t = strtok(NULL, "\n"); // get all str
 			ApplyFen(&x, t);
+			game_history[game_history_size++] = Hash_Position(&x);
 			t = strchr(t, 'm');
 			if(t){ // there are "moves" str
 				t += 6;
 				t = strtok(t, " \n");
 				while(t){
 					x = NotationMove(x, t);	
+					game_history[game_history_size++] = Hash_Position(&x);
 					t = strtok(NULL, " \n");
 				}
 			}
@@ -181,6 +188,16 @@ void Uci(){
 					t = strtok(NULL, " \n");
 					_game.movestogo = std::stoi(t);
 				}
+				else if(strcmp(t, "movetime") == 0){
+					t = strtok(NULL, " \n");
+					if(std::stoi(t) < 3000){
+						_depth = SEARCH_DEPTH_LOW_TIME;
+					}
+					else{
+						_depth = SEARCH_DEPTH_LONG_TIME;
+					}
+
+				}
 				else if(isdigit(*t) == 1){
 					_depth = std::stoi(t);
 				}
@@ -207,7 +224,7 @@ void Uci(){
 			for(_depth = _depth - 1;_depth > 0; _depth--){
 				//std::cout << "depth" << _depth;
 				Picked_move = Next(x, _depth);
-				if(Picked_move.move.to == Picked_move.move.from) break;
+				if(Picked_move.move.to == Picked_move.move.from) break; //mate or stalemate
 				x = FromTo(x, Picked_move.move);
 				bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
 				std::cout << " " << bestmove << ((x.key >> 28 & 7ULL) ? Promoting_str[x.key >> 28 & 7ULL] : ' ');
@@ -215,7 +232,7 @@ void Uci(){
 			std::cout << std::endl;
 			x = _x; // go back
 			ct = clock() - ct;
-			std::cout << "info string " << ((double)ct)/CLOCKS_PER_SEC << "sec" << std::endl;
+			std::cout << "info string " << ((double)ct)/CLOCKS_PER_SEC << "sec" << "  hash: " << Hash_Position(&x) << std::endl;
 			fflush(stdout);
 
 		}
@@ -228,7 +245,7 @@ void Uci(){
 		}
 		else if(strcmp(t, "isready") == 0){
 			std::cout << "readyok" << std::endl;
-			fflush(stdout);
+			//fflush(stdout);
 		}
 		else if(strcmp(t, "ucinewgame") == 0){
 			x = {};

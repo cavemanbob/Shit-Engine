@@ -119,3 +119,20 @@ inline int SwapSide(u8 side){
 inline int GetSide(u64 key){
 	return (key >> 8 & 1ULL);
 }
+
+
+u64 Hash_Position(position *x){
+	u64 key = 0ULL;
+	for(int i = 0; i < 15; i++){
+		key ^= *(&x->occupied +i);
+	}
+	return key;
+}
+
+int Check_Three_Fold(u64 new_hash){
+	int k = 0;
+	for(int i = 0; i < game_history_size; i++){
+		if(game_history[i] == new_hash) k++;
+	}
+	return (k>=2) ? 1 : 0;
+}
