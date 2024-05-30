@@ -5,4 +5,5 @@
 #include "move_order.h"
 #include "eval.h"
 #include "search.h"
+#include "pick_move.h"
 #include "uci.h"
