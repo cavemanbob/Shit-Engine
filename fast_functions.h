@@ -20,29 +20,29 @@ u64 rand64(){
 	return state;
 }
 
-float max(std::vector<float> x){
+int max(std::vector<int> x){
 	if(x.size() == 0) return -1;
-	float max = x[0];
+	int max = x[0];
 	for(int i=1; i < x.size(); i++){
 		if(max < x[i]) max = x[i];
 	}
 	return max;
 }
 
-float min(std::vector<float> x){
+int min(std::vector<int> x){
 	if(x.size() == 0) return -1;
-	float min = x[0];
+	int min = x[0];
 	for(int i=1; i < x.size(); i++){
 		if(min > x[i]) min = x[i];
 	}
 	return min;
 }
 
-inline float max(float a, float b){
+inline int max(int a, int b){
 	return a > b ? a : b;
 }
 
-inline float min(float a, float b){
+inline int min(int a, int b){
 	return a < b ? a : b;
 }
 

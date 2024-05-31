@@ -44,7 +44,7 @@ struct position{
 				// CHECKS 32
 				// Reductioned 33
 
-	//u8 to_square;
+	u8 to_square;
 	//u8 red;
 #ifdef DEBUG
 	u8 oldsquare;
@@ -136,6 +136,7 @@ struct game{
 };
 u64 Node_Total = 0;
 u8 Move_Counter = 0; // move for current fen
+u8 Global_depth = 0;
 
 struct move{
 	u8 from;
@@ -157,7 +158,7 @@ inline void MoveList_free(Movelist *movelist){
 
 struct ScoredMove{
 	move move;
-	float val;
+	int val;
 };
 typedef struct ScoredMove ScoredMove;
 
@@ -165,8 +166,9 @@ u64 game_history[512] = {};
 u64 game_history_size = 0ULL;
 
 
-
-
+u64 left = 0;
+u64 right = 0;
+//u64 test = 0;
 
 int Pos_Val_Table[64 * 6] = {
 				35,  29,  33,   4,  37,  33,  56,  50, //rook

@@ -1,7 +1,7 @@
 
-float Evaluate(position b){
-	float mg[2] = {}; // black 0 white 1
-	float eg[2] = {};
+int Evaluate(position b){
+	int mg[2] = {}; // black 0 white 1
+	int eg[2] = {};
 	
 	int GamePhase = 0;
 	
@@ -22,8 +22,8 @@ float Evaluate(position b){
 		GamePhase += gamephaseInc[i];
 	}	
 
-	float mgScore = mg[WHITE] - mg[BLACK];
-	float egScore = eg[WHITE] - eg[BLACK];
+	int mgScore = mg[WHITE] - mg[BLACK];
+	int egScore = eg[WHITE] - eg[BLACK];
 	int mgPhase = GamePhase;
 	if(mgPhase > 24) mgPhase = 24; // promotion
 	int egPhase = 24 - mgPhase;

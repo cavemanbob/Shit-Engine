@@ -81,6 +81,8 @@ position FromTo(position b, u8 from, u8 to, u8 piece){
 	b.key &= ~(1ULL << 31); // capture flag reset
 	b.key &= ~(0b111 << 28); // Promoting flag reset
 	
+	b.to_square = to;
+	
 	if(piece == En_B){ // enpass
 		b.occupied ^= 1ULL << to + 8;
 		b.woccupied ^= 1ULL << to + 8;
@@ -187,6 +189,8 @@ position FromTo(position b, move x){
 	
 	b.key &= ~(1ULL << 31); // capture flag reset
 	b.key &= ~(0b111 << 28); // Promoting flag reset
+	
+	b.to_square = to;
 
 	if(piece == En_B){ // enpass
 		b.occupied ^= 1ULL << to + 8;

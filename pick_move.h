@@ -6,8 +6,6 @@ void Swap_ScoredMove(ScoredMove *a, ScoredMove *b){
 
 
 ScoredMove Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOMETHING LIKE THAT ????????
-	//printf("info depth %d\n",depth);
-	//for(int i = 0; i < game_history_size; i++) std::cout << "Chash: " << game_history[i] << std::endl;
 	Node_Total = 0;
 	Move_Counter = b.key & 0b1111111;
 	int side = b.key >> 8 & 1ULL;
@@ -16,9 +14,11 @@ ScoredMove Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOMET
 	if(m.Stack_size == 0) {ScoredMove _move = {}; return _move;} //mate
 	move_order(&b, &m);
 	std::vector<ScoredMove> ScoredMoves;
-	float val = (side == WHITE) ? INT_MIN : INT_MAX;
-	float alp = 0;
+	int val = (side == WHITE) ? INT_MIN : INT_MAX;
+	int alp = 0;
 	for(int i=0; i < m.Stack_size; i++){
+		//std::cout << "-> " << i << std::endl;
+		//if(i == 27) test = 1;
 		if(side == WHITE){
 			alp = alphabeta(FromTo(b, m.list[i]), depth - 1, INT_MIN, INT_MAX);
 			ScoredMove _move = {m.list[i], alp};
