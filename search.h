@@ -2,25 +2,25 @@
 
 int Quiesce(position b, int alpha, int beta) {
 	Node_Total++;
-	//if(Node_Total > 2416112) {ReadableBoard(b);_sleep(300);}
-	int stand_pat = Evaluate(b);
+	int stand_pat = Evaluate(&b);
 	if( stand_pat >= beta )
 		return beta;
 	if( alpha < stand_pat )
 		alpha = stand_pat;
 
-	Movelist  m;
+	moves  m;
 	movegen(&m, b);
-	if(m.Stack_size == 0) return (GetSide(b.key) == WHITE) ? INT_MIN : INT_MAX; //checkmate or stealmate check
+	if(m.size == 0) return (b.turn == WHITE) ? INT_MIN : INT_MAX; //checkmate or stealmate check
 	move_order(&b, &m);
 	int i;
-	for(i = 0; i < m.Stack_size; i++){ // get first capture
-		if(BitCheck(b.occupied, m.list[i].to) == 1) break;
+	for(i = 0; i < m.size; i++){ // get first capture
+		if(BitCheck(b.occupied, m.moves[i].to) == 1) break;
 	}
-	for(; i < m.Stack_size; i++){ // for all captures
-		if(BitCheck(b.occupied, m.list[i].to) == 0) break;
-		//if(test == 1){ReadableBoard(FromTo(b, m.list[i])); _sleep(150);}
-		int score = -Quiesce(FromTo(b, m.list[i]), alpha, beta);
+	for(; i < m.size; i++){ // for all captures
+		if(BitCheck(b.occupied, m.moves[i].to) == 0) break; //this move is not capture
+		make_move(&b, m.moves[i]);
+		int score = -Quiesce(b, -alpha, -beta);
+		//undo_move(&b, m.moves[i]);
 		if( score >= beta )
 			return beta;
 		if( score > alpha )
@@ -31,25 +31,27 @@ int Quiesce(position b, int alpha, int beta) {
 int alphabeta(position b, int depth, int alpha, int beta){
 	Node_Total++;
 	if(depth == 0){
-		if(BitCheck(b.key, 31)){ // 72
+		if(b.captured_piece){ // 72 goes there
 			left++;
 			return Quiesce(b, alpha, beta);
 		}
-		else{ // 1984
+		else{ // 1984 // goes there
 			right++;
-			return Evaluate(b);
+			return Evaluate(&b);
 		}
 	}
-	u8 side = b.key >> 8 & 1ULL;
+	u8 side = b.turn;
 	if(side == WHITE){
 		int val = INT_MIN;
-		Movelist  m;
+		moves  m;
 		movegen(&m, b);
 		move_order(&b, &m);
-		if(m.Stack_size == 0) return INT_MIN;
-		for(int i=0; i < m.Stack_size; i++){
-	//if(BitCheck(FromTo(b, m.list[i]).key,31) == 1) {ReadableBoard(b);ReadableBoard(FromTo(b, m.list[i]));std::cout << "----------------\n";_sleep(100);}
-			val = std::max(val, alphabeta(FromTo(b, m.list[i]), depth - 1, alpha, beta));
+		if(m.size == 0) return INT_MIN;
+		for(int i=0; i < m.size; i++){
+	//if(BitCheck(FromTo(b, m.moves[i]).key,31) == 1) {ReadableBoard(b);ReadableBoard(FromTo(b, m.list[i]));std::cout << "----------------\n";_sleep(100);}
+			make_move(&b, m.moves[i]);
+			val = std::max(val, alphabeta(b, depth - 1, alpha, beta));
+		//undo_move(&b, m.moves[i]);
 			if (val > beta){
 				break;
 			}
@@ -59,12 +61,14 @@ int alphabeta(position b, int depth, int alpha, int beta){
 	}
 	else{
 		int val = INT_MAX;
-		Movelist  m;
+		moves  m;
 		movegen(&m, b);
 		move_order(&b, &m);
-		if(m.Stack_size == 0) return INT_MAX;
-		for(int i=0; i < m.Stack_size; i++){
-			val = std::min(val, alphabeta(FromTo(b, m.list[i]), depth - 1, alpha, beta));
+		if(m.size == 0) return INT_MAX;
+		for(int i=0; i < m.size; i++){
+			make_move(&b, m.moves[i]);
+			val = std::min(val, alphabeta(b, depth - 1, alpha, beta));
+			//undo_move(&b, m.moves[i]);
 			if (val < alpha){
 				break;
 			}

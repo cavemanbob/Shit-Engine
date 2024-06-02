@@ -10,6 +10,9 @@ inline u8 Ls1bIndex(u64 x){
 		return __builtin_ffsll(x) - 1;
 }
 
+inline u8 lsb(u64 x){
+		return __builtin_ffsll(x) - 1;
+}
 
 u64 rand64(){
 	u64 x = state;
@@ -98,7 +101,7 @@ void ReadableBoard(position b){
 				}
 			}
 #ifdef DEBUG
-			if(b.oldsquare == i * 8 + j &&  !(b.occupied & 1ULL << b.oldsquare)){
+			if(b.from == i * 8 + j &&  !(b.occupied & 1ULL << b.from)){
 				std::cout << "x ";
 				continue;
 			}
@@ -135,4 +138,83 @@ int Check_Three_Fold(u64 new_hash){
 		if(game_history[i] == new_hash) k++;
 	}
 	return (k>=2) ? 1 : 0;
+}
+
+
+
+void ApplyFen(position *b, char *fen){
+	*b = {};
+	//game_history = {};
+	for(int i = 0; i < game_history_size; i++) game_history[i] = 0;
+	game_history_size = 0;
+
+	if(strncmp(fen, "startpos", 8) == 0) fen = START_FEN;
+	char pieces[] = "RNBQKPrnbqkp";
+	char strfen[200];
+	strcpy(strfen, fen);
+	char *t = strtok(strfen, " \n");
+	int space = 0, piece = 0, sq = 56;
+	while(t){
+		if(space == 0){
+			int i = 0;
+			while(*(t + i) != 0){
+				if(*(t + i) == '/'){
+					sq -= 17;
+				}
+				else if(isdigit(*(t + i))){
+					sq += *(t + i) - 49;
+				}
+				else{
+					piece = strchr(pieces, *(t+i)) - pieces;
+					b->occupied ^= 1ULL << sq;
+					if(piece < 6){ //white
+						b->woccupied ^= 1ULL << sq;
+						*(&(b->wr) + piece) ^= 1ULL << sq;
+					}
+					else{ //black
+						b->boccupied ^= 1ULL << sq;
+						*(&(b->wr) + piece) ^= 1ULL << sq;
+					}
+				}
+				i++;
+				sq++;
+			}
+			space++;
+		}
+		else if(space == 1){
+			if(*t == 'w') b->turn = WHITE;
+			space++;	
+		}
+		else if(space == 2){
+			int i = 0;
+			while(*(t + i) != 0){
+/*				*(t + i) == 'K' ? b->key |= 1ULL << 12 :
+				*(t + i) == 'Q' ? b->key |= 1ULL << 11 :
+				*(t + i) == 'k' ? b->key |= 1ULL << 10 :
+				*(t + i) == 'q' ? b->key |= 1ULL << 9 : 1;*/
+				i++;
+			}
+			space++;	
+		}
+		else if(space == 3){// get enpass sq
+			if(*t != '-'){
+				char str[] = "abcdefgh";
+				int sq = 0;
+				sq += strchr(str, *t) - str;
+				sq += (int)(*(t + 1) - '0' - 2) * 8;
+				//std::cout << "GEPS " << sq << std::endl;
+				b->enpass_sq = sq;
+			}
+			space++;
+		}
+		else if(space == 4){
+			b->fifty_move = std::stoi(t);
+			space++;
+		}
+		else if(space == 5){
+			b->move_counter = std::stoi(t);
+			space++;	
+		}
+		t = strtok(NULL, " \n");
+	}
 }

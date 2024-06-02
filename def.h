@@ -35,22 +35,17 @@ struct position{
 	u64 bk;
 	u64 bp;
 
-	u64 key; // 7-0 -> move counter / 8 -> turn / 12-9 -> castling / 19-13 -> fifty move
-				// castling 1111 -> W_OO W_OOO B_OO B_OOO
-				// 20-27 -> enpassant
-				// turn white 1 black 0
-				// promating 28-30 || 1Q 2R 3B 4N
-				// CAPTURED 31
-				// CHECKS 32
-				// Reductioned 33
-
-	u8 to_square;
-	//u8 red;
-#ifdef DEBUG
-	u8 oldsquare;
-#endif
-
+	u8 move_counter;
+	u8 enpass_sq;
+	u8 castling; // sw lw sb lb   (6 -> its for did changed flag)
+	u8 fifty_move;
+	u8 captured_piece;
+	u8 from; //old sq last moved piece
+	u8 to; //new sq last moved piece
+	u8 turn;
 };
+
+#define NO_SQUARE 65
 
 enum directions : int{
 	NORTH = 8,
@@ -110,12 +105,6 @@ u64 state = 11349138731524945662ULL; //seed
 char START_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /*
-struct output{
-	std::vector<int> from;
-	std::vector<int> to;
-	std::vector<int> PieceType;
-};*/
-
 enum Val : int{
 	PAWN_VAL = 100,
 	ROOK_VAL = 550,
@@ -123,7 +112,7 @@ enum Val : int{
 	KNIGHT_VAL = 280,
 	QUEEN_VAL = 1150,
 	KING_VAL = 20000
-};
+};*/
 
 std::string bestmove = "      ";
 
@@ -138,33 +127,57 @@ u64 Node_Total = 0;
 u8 Move_Counter = 0; // move for current fen
 u8 Global_depth = 0;
 
+enum piece_types_enum : u8{
+	none = 0, rook = 1, knight = 2, bishop = 3, queen = 4, king = 5, pawn = 6
+};
+
 struct move{
 	u8 from;
 	u8 to;
-	u8 PieceType;
+	u8 moved_piece;
+	//u8 captured_piece;
+	//this is should be in position
+	u8 move_type;
+	u8 side;
+};
+enum move_types : u8{
+	only_move = 0, en_w = 1, en_b = 2, pro_r = 3, pro_n = 4, pro_b = 5, pro_q = 6,
+  	short_castle_w, long_castle_w, short_castle_b, long_castle_b
 };
 
-struct Movelist{
-	move list[256]; // Move order starts from 256
-	int Stack_size;
-};
-inline void MoveList_Add(Movelist *movelist, move x){
-	movelist->list[movelist->Stack_size++] = x;
-}
-inline void MoveList_free(Movelist *movelist){
-	free(movelist->list);
-	free(movelist);
-}
-
-struct ScoredMove{
+struct scored_move{
 	move move;
 	int val;
 };
-typedef struct ScoredMove ScoredMove;
+typedef struct scored_move scored_move;
+
+struct moves{
+	move moves[256];
+	int size;
+};
+
+inline void moves_add(moves *source, move move){
+	source->moves[source->size++] = move;
+}
 
 u64 game_history[512] = {};
 u64 game_history_size = 0ULL;
-
+u8 Flags_History[512] = {};
+u16 Flags_History_Size = 0;
+void push_flag(u8 _flag){
+	if(Flags_History_Size == 511){
+		printf("\nFlag capacity is full, push is not possible!\n");
+		assert(0);
+	}
+	Flags_History[Flags_History_Size++] = _flag;
+}
+u8 pop_flag(){
+	if(Flags_History_Size == 0){
+		printf("\nFlag Size is 0, pop is not possible!\n");
+		assert(0);
+	}
+	return Flags_History[--Flags_History_Size];
+}
 
 u64 left = 0;
 u64 right = 0;

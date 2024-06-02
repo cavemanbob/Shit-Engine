@@ -1,114 +1,47 @@
 
-void ApplyFen(position *b, char *fen){
-	*b = {};
-	//game_history = {};
-	for(int i = 0; i < game_history_size; i++) game_history[i] = 0;
-	game_history_size = 0;
 
-	if(strncmp(fen, "startpos", 8) == 0) fen = START_FEN;
-	char pieces[] = "RNBQKPrnbqkp";
-	char strfen[200];
-	strcpy(strfen, fen);
-	char *t = strtok(strfen, " \n");
-	int space = 0, piece = 0, sq = 56;
-	while(t){
-		if(space == 0){
-			int i = 0;
-			while(*(t + i) != 0){
-				if(*(t + i) == '/'){
-					sq -= 17;
-				}
-				else if(isdigit(*(t + i))){
-					sq += *(t + i) - 49;
-				}
-				else{
-					piece = strchr(pieces, *(t+i)) - pieces;
-					b->occupied ^= 1ULL << sq;
-					if(piece < 6){ //white
-						b->woccupied ^= 1ULL << sq;
-						*(&(b->wr) + piece) ^= 1ULL << sq;
-					}
-					else{ //black
-						b->boccupied ^= 1ULL << sq;
-						*(&(b->wr) + piece) ^= 1ULL << sq;
-					}
-				}
-				i++;
-				sq++;
-			}
-			space++;
-		}
-		else if(space == 1){
-			if(*t == 'w') b->key ^= 1ULL << 8;
-			space++;	
-		}
-		else if(space == 2){
-			int i = 0;
-			while(*(t + i) != 0){
-				*(t + i) == 'K' ? b->key |= 1ULL << 12 :
-				*(t + i) == 'Q' ? b->key |= 1ULL << 11 :
-				*(t + i) == 'k' ? b->key |= 1ULL << 10 :
-				*(t + i) == 'q' ? b->key |= 1ULL << 9 : 1;
-				i++;
-			}
-			space++;	
-		}
-		else if(space == 3){// get enpass sq
-			if(*t != '-'){
-				char str[] = "abcdefgh";
-				int sq = 0;
-				sq += strchr(str, *t) - str;
-				sq += (int)(*(t + 1) - '0' - 2) * 8;
-				//std::cout << "GEPS " << sq << std::endl;
-				b->key |= sq << 20;
-			}
-			space++;
-		}
-		else if(space == 4){
-			space++;
-		}
-		else if(space == 5){
-			b->key |= std::stoi(t);
-			space++;	
-		}
-		t = strtok(NULL, " \n");
-	}
-}
-
-int Perft(position b, int depth){
+u64 perft(position b, int depth){
 	if(depth == 1){
-		Movelist  m;
+		moves  m;
 		movegen(&m, b);
-		return m.Stack_size;
+		return m.size;
 	}
 	if(depth == 0) return 1;
-	Movelist  m;
+	moves  m;
 	movegen(&m, b);
-	int MoveCount = 0;
-	for(int i=0; i < m.Stack_size; i++){
-		MoveCount += Perft(FromTo(b, m.list[i]), depth - 1);
+	u64 move_count = 0;
+	for(int i=0; i < m.size; i++){
+		make_move(&b, m.moves[i]);
+		move_count += perft(b, depth - 1);
+		undo_move(&b, m.moves[i]);
 	}
-	return MoveCount;
+	return move_count;
 }
 
-position NotationMove(position b, char *inp){
+position notation_move(position b, char *inp){
 	char alphabet[] = "abcdefgh";
-	int from = 0, to = 0;
+	u8 from = 0, to = 0;
 	from += strchr(alphabet, inp[0]) - alphabet;
-	from += ((int)inp[1] - '0' - 1) * 8;
+	from += ((u8)inp[1] - '0' - 1) * 8;
 	to += strchr(alphabet, inp[2]) - alphabet;
-	to += ((int)inp[3] - '0' - 1) * 8;
+	to += ((u8)inp[3] - '0' - 1) * 8;
 	if(inp[4] != 0 && inp[4] != ' '){//promating move
-		return FromTo(b, from, to, (strchr(Promoting_str, inp[4]) - Promoting_str) + 13);
+		move _move = {from, to, pawn, (u8)((strchr(Promoting_str, inp[4]) - Promoting_str) + 2)};
+		make_move(&b, _move);
+		return b;
 	}
 	int piece;
 	for(piece=0; piece<12; piece++)
 		if(BitCheck(*(&b.wr + piece) , from)) 
 			break;
 	if( (piece == PAWN_W || piece == PAWN_B) && (abs((int)from % 8 - (int)to % 8) > 0) && BitCheck(b.occupied, to) == 0){
-		return FromTo(b, from, to,  (b.key & 1ULL << 8) ? En_W : En_B);
+		move _move = {from, to, pawn, b.turn == WHITE ? en_w : en_b};
+		make_move(&b, _move);
+		return b;
 	}
-	return FromTo(b,from,to,piece);
+	move _move = {from, to, (u8)(piece + 1 - 6 * (1 - b.turn)), only_move};
+	make_move(&b, _move);
+	return b;
 }
 
 
@@ -117,19 +50,7 @@ position NotationMove(position b, char *inp){
 #define SEARCH_DEPTH_LOW_TIME 5
 #define TEXT_BUFFER 3000
 void Uci(){
-	InitPawnAttacks();
-	InitPawnPushes();
-	InitKnightAttacks();
-	InitKingAttacks();
-	InitRookAttacks();
-	InitBishopAttacks();
-	InitFullRookAttacks();
-	InitFullBishopAttacks();
-	FindMagics(RelevantBishopMask, BishopMagics, BishopBase, BISHOP);
-	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
-	rand64();
-	Init_pestos();
-	srand(time(NULL));
+	init_all();
 
 	char text[TEXT_BUFFER] = {};
 	position x = {};
@@ -157,7 +78,7 @@ void Uci(){
 				t += 6;
 				t = strtok(t, " \n");
 				while(t){
-					x = NotationMove(x, t);	
+					x = notation_move(x, t);	
 					game_history[game_history_size++] = Hash_Position(&x);
 					t = strtok(NULL, " \n");
 				}
@@ -215,12 +136,13 @@ void Uci(){
 			//infos
 			clock_t ct = clock();
 			std::cout << "info depth " << _depth << std::endl;
-			ScoredMove Picked_move = Next(x, _depth);
-			x = FromTo(x, Picked_move.move);
+			scored_move Picked_move = Next(x, _depth);
+			//x = FromTo(x, Picked_move.move);
+			make_move(&x, Picked_move.move);
 			position _x = x;
 			bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
 			std::cout << "info nodes " << Node_Total << std::endl;
-			std::cout << "bestmove " << bestmove << ((x.key >> 28 & 7ULL) ? Promoting_str[x.key >> 28 & 7ULL] : ' ') << std::endl;
+			std::cout << "bestmove " << bestmove << ((Picked_move.move.move_type > 1 && 7 > Picked_move.move.move_type) ? Promoting_str[Picked_move.move.move_type - 2] : ' ') << std::endl;
 			std::cout << "info pv ";
 	/*		for(_depth = _depth - 1;_depth > 0; _depth--){
 				//std::cout << "depth" << _depth;
@@ -256,36 +178,38 @@ void Uci(){
 		else if(strcmp(t, "eval") == 0){
 			t = strtok(NULL, " \n");
 			if(strcmp(t, "current") == 0){
-				std::cout << "value " << Evaluate(x) << std::endl;
+				std::cout << "value " << Evaluate(&x) << std::endl;
 			}
 			else if(t){
 				ApplyFen(&x, t);
-				std::cout << "value " << Evaluate(x) << std::endl;
+				std::cout << "value " << Evaluate(&x) << std::endl;
 			}
 			else{
-				std::cout << "value " << Evaluate(x) << std::endl;
+				std::cout << "value " << Evaluate(&x) << std::endl;
 			}	
 		}
 		else if(strcmp(t, "perft") == 0){
 			clock_t ct = clock();
 			t = strtok(NULL, " \n");
 			if(t == NULL) continue;
-			Movelist  m;
+			moves  m;
 			movegen(&m, x);
-			u64 MoveCount = 0;
+			u64 move_count = 0;
 			if(std::stoi(t) == 1){
-				for(int i = 0; i < m.Stack_size; i++){
-					std::cout << ctos(m.list[i].from) << ctos(m.list[i].to) << Promoting_str[FromTo(x, m.list[i]).key >> 28 & 0b111] << " 1" << std::endl;
+				for(int i = 0; i < m.size; i++){
+					std::cout << ctos(m.moves[i].from) << ctos(m.moves[i].to) << Promoting_str[m.moves[i].move_type - 2] << " 1" << std::endl;
 				}
-				std::cout << "move" << m.Stack_size << std::endl;
+				std::cout << "move" << m.size << std::endl;
 			}
 			else{
-				for(int i=0; i < m.Stack_size; i++){
-					u64 Current_Perft = Perft(FromTo(x, m.list[i]), std::stoi(t) - 1);
-					std::cout << ctos(m.list[i].from) << ctos(m.list[i].to) << Promoting_str[FromTo(x, m.list[i]).key >> 28 & 0b111] << " " << Current_Perft << std::endl;
-					MoveCount += Current_Perft;
+				for(int i=0; i < m.size; i++){
+					make_move(&x, m.moves[i]);
+					u64 Current_Perft = perft(x, std::stoi(t) - 1);
+					undo_move(&x, m.moves[i]);
+					std::cout << ctos(m.moves[i].from) << ctos(m.moves[i].to) << Promoting_str[m.moves[i].move_type - 2] << " " << Current_Perft << std::endl;
+					move_count += Current_Perft;
 				}
-				std::cout << "depth " << std::stoi(t) << " total " << MoveCount << std::endl;
+				std::cout << "depth " << std::stoi(t) << " total " << move_count << std::endl;
 			}
 			ct = clock() - ct;
 			std::cout << ((double)ct)/CLOCKS_PER_SEC << std::endl;

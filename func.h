@@ -1,6 +1,7 @@
 #include "def.h"
 #include "fast_functions.h"
 #include "init.h"
+#include "make_move.h"
 #include "movegen.h"
 #include "move_order.h"
 #include "eval.h"
