@@ -238,3 +238,21 @@ void Init_pestos(){
 		}
 	}
 }
+
+
+
+void init_all(){
+	InitPawnAttacks();
+	InitPawnPushes();
+	InitKnightAttacks();
+	InitKingAttacks();
+	InitRookAttacks();
+	InitBishopAttacks();
+	InitFullRookAttacks();
+	InitFullBishopAttacks();
+	FindMagics(RelevantBishopMask, BishopMagics, BishopBase, BISHOP);
+	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
+	rand64();
+	Init_pestos();
+	srand(time(NULL));
+}
