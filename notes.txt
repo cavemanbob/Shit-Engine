@@ -207,3 +207,39 @@ perft 2
 position rnbqkbnr/ppppp1pp/8/5p1Q/8/4P3/PPPP1PPP/RNB1KBNR b KQkq - 1 2
 perft 1
 1
+
+
+
+
+
+// move types
+
+// slide
+	u64 occupied;  +
+	u64 woccupied; ~
+	u64 boccupied; ~
+	u64 wr; +
+
+// capture
+	u64 occupied; 
+	u64 woccupied; ~
+	u64 boccupied; ~
+	u64 wr; +
+
+// promotion
+	u64 occupied; 
+	u64 woccupied;
+	u64 boccupied;
+	u64 wr; +
+
+// enpass
+	u64 occupied;  +
+	u64 woccupied; ~
+	u64 boccupied; ~
+	u64 wr; +
+// castle
+
+	u64 occupied; +
+	u64 woccupied; ~
+	u64 boccupied; ~
+	u64 wr; +
