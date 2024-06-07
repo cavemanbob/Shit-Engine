@@ -16,41 +16,28 @@ typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
 
+typedef uint64_t bitboard;
+
+
 struct position{
-	u64 occupied;
-	u64 woccupied;
-	u64 boccupied;
 
-	u64 wr;
-	u64 wn;
-	u64 wb;
-	u64 wq;
-	u64 wk;
-	u64 wp;
+	bitboard occupied[2]; // 0 WHITE 1 BLACK
+	bitboard bitboards[12]; // wr wn wb wq wk wp - br bn bb bq bk bp
 
-	u64 br;
-	u64 bn;
-	u64 bb;
-	u64 bq;
-	u64 bk;
-	u64 bp;
-
-	u64 key; // 7-0 -> move counter / 8 -> turn / 12-9 -> castling / 19-13 -> fifty move
-				// castling 1111 -> W_OO W_OOO B_OO B_OOO
-				// 20-27 -> enpassant
-				// turn white 1 black 0
-				// promating 28-30 || 1Q 2R 3B 4N
-				// CAPTURED 31
-				// CHECKS 32
-				// Reductioned 33
-
-	u8 to_square;
-	//u8 red;
-#ifdef DEBUG
-	u8 oldsquare;
-#endif
-
+	//recalculatable flags	
+	u8 move_counter;
+	u8 turn;
+	u8 from; //old sq last moved piece
+	u8 to; //new sq last moved piece
+	
+	//not_reversable flags
+	u8 enpass_sq;
+	u8 castling; // sw lw sb lb   (6 -> its for did changed flag)
+	u8 fifty_move;
+	u8 captured_piece;
 };
+
+#define NO_SQUARE 65
 
 enum directions : int{
 	NORTH = 8,
@@ -110,12 +97,6 @@ u64 state = 11349138731524945662ULL; //seed
 char START_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /*
-struct output{
-	std::vector<int> from;
-	std::vector<int> to;
-	std::vector<int> PieceType;
-};*/
-
 enum Val : int{
 	PAWN_VAL = 100,
 	ROOK_VAL = 550,
@@ -123,7 +104,7 @@ enum Val : int{
 	KNIGHT_VAL = 280,
 	QUEEN_VAL = 1150,
 	KING_VAL = 20000
-};
+};*/
 
 std::string bestmove = "      ";
 
@@ -138,33 +119,76 @@ u64 Node_Total = 0;
 u8 Move_Counter = 0; // move for current fen
 u8 Global_depth = 0;
 
+enum piece_types_enum : u8{
+	rook = 0, knight = 1, bishop = 2, queen = 3, king = 4, pawn = 5
+};
+
 struct move{
 	u8 from;
 	u8 to;
-	u8 PieceType;
+	u8 moved_piece;
+	//u8 captured_piece;
+	//this is should be in position
+	u8 move_type;
+	u8 side;
 };
-
-struct Movelist{
-	move list[256]; // Move order starts from 256
-	int Stack_size;
+enum move_types : u8{
+	only_move = 0, en_w = 1, en_b = 2, pro_r = 3, pro_n = 4, pro_b = 5, pro_q = 6,
+  	short_castle_w, long_castle_w, short_castle_b, long_castle_b
 };
-inline void MoveList_Add(Movelist *movelist, move x){
-	movelist->list[movelist->Stack_size++] = x;
-}
-inline void MoveList_free(Movelist *movelist){
-	free(movelist->list);
-	free(movelist);
-}
+#define NO_CAPTURE_FLAG 16
 
-struct ScoredMove{
+struct scored_move{
 	move move;
 	int val;
 };
-typedef struct ScoredMove ScoredMove;
+typedef struct scored_move scored_move;
+
+struct moves{
+	move moves[256];
+	int size;
+};
+
+inline void moves_add(moves *source, move move){
+	source->moves[source->size++] = move;
+}
 
 u64 game_history[512] = {};
 u64 game_history_size = 0ULL;
-
+u8 Flags_History[512] = {};
+u16 Flags_History_Size = 0;
+void push_flag(u8 _flag){
+	if(Flags_History_Size == 511){
+		printf("\nFlag capacity is full, push is not possible!\n");
+		assert(0);
+	}
+	Flags_History[Flags_History_Size++] = _flag;
+}
+u8 pop_flag(){
+	if(Flags_History_Size == 0){
+		printf("\nFlag Size is 0, pop is not possible!\n");
+		assert(0);
+	}
+	return Flags_History[--Flags_History_Size];
+}
+position Position_History[512] = {};
+u16 Position_History_Size = 0;
+void push_position(position p){
+	//std::cout << "push position stack size: " << (int)Position_History_Size << std::endl;
+	if(Position_History_Size == 511){
+		printf("\nPosition capacity is full, push is not possible!\n");
+		assert(0);
+	}
+	Position_History[Position_History_Size++] = p;
+}
+position pop_position(){
+	//std::cout << "pop position stack size: " << (int)Position_History_Size << std::endl;
+	if(Position_History_Size == 0){
+		printf("\nPosition Size is 0, pop is not possible!\n");
+		assert(0);
+	}
+	return Position_History[--Position_History_Size];
+}
 
 u64 left = 0;
 u64 right = 0;
@@ -392,5 +416,17 @@ int* eg_pesto_table[6] =
 int gamephaseInc[6] = {2,1,1,4,0,0};
 int mg_table[12][64];
 int eg_table[12][64];
+
+enum Squares : u8{
+	a1, b1, c1, d1, e1, f1, g1, h1,
+	a2, b2, c2, d2, e2, f2, g2, h2,
+	a3, b3, c3, d3, e3, f3, g3, h3,
+	a4, b4, c4, d4, e4, f4, g4, h4,
+	a5, b5, c5, d5, e5, f5, g5, h5,
+	a6, b6, c6, d6, e6, f6, g6, h6,
+	a7, b7, c7, d7, e7, f7, g7, h7,
+	a8, b8, c8, d8, e8, f8, g8, h8 = 63ULL
+};
+
 
 
