@@ -1,22 +1,24 @@
 
-int Evaluate(position b){
+int Evaluate(position *b){
 	int mg[2] = {}; // black 0 white 1
 	int eg[2] = {};
-	
+	u64 woccupied = b->occupied[WHITE];
+	u64 boccupied = b->occupied[BLACK];
+
 	int GamePhase = 0;
 	
-	while(b.woccupied){
-		int i, lsi = Ls1bIndex(b.woccupied);
-		for(i=0; i < 6; i++) if(BitCheck(*(&b.wr + i),lsi))break;
-		b.woccupied &= b.woccupied - 1;
+	while(woccupied){
+		int i, lsi = lsb(woccupied);
+		for(i=0; i < 6; i++) if(get_bit(b->bitboards[i],lsi))break;
+		woccupied &= woccupied - 1;
 		mg[WHITE] += mg_table[i][lsi];
 		eg[WHITE] += eg_table[i][lsi];
 		GamePhase += gamephaseInc[i];
 	}		
-	while(b.boccupied){
-		int i, lsi = Ls1bIndex(b.boccupied);
-		for(i=0; i < 6; i++) if(BitCheck(*(&b.br + i),lsi))break;
-		b.boccupied &= b.boccupied - 1;
+	while(boccupied){
+		int i, lsi = lsb(boccupied);
+		for(i=0; i < 6; i++) if(get_bit(b->bitboards[6 + i],lsi))break;
+		boccupied &= boccupied - 1;
 		mg[BLACK] += mg_table[i][lsi];
 		eg[BLACK] += eg_table[i][lsi];
 		GamePhase += gamephaseInc[i];

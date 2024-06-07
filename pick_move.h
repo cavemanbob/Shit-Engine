@@ -1,37 +1,41 @@
-void Swap_ScoredMove(ScoredMove *a, ScoredMove *b){
-	ScoredMove c = *a;
+void Swap_scored_move(scored_move *a, scored_move *b){
+	scored_move c = *a;
 	*a = *b;
 	*b = c;
 }
 
 
-ScoredMove Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOMETHING LIKE THAT ????????
+scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOMETHING LIKE THAT ????????
 	Node_Total = 0;
-	Move_Counter = b.key & 0b1111111;
-	int side = b.key >> 8 & 1ULL;
-	Movelist  m;
+	Move_Counter = b.move_counter;
+	int side = b.turn;
+	moves  m;
 	movegen(&m, b);
-	if(m.Stack_size == 0) {ScoredMove _move = {}; return _move;} //mate
+	if(m.size == 0) {scored_move _move = {}; return _move;} //mate
 	move_order(&b, &m);
-	std::vector<ScoredMove> ScoredMoves;
+	std::vector<scored_move> scored_moves;
 	int val = (side == WHITE) ? INT_MIN : INT_MAX;
 	int alp = 0;
-	for(int i=0; i < m.Stack_size; i++){
+	for(int i=0; i < m.size; i++){
 		//std::cout << "-> " << i << std::endl;
 		//if(i == 27) test = 1;
 		if(side == WHITE){
-			alp = alphabeta(FromTo(b, m.list[i]), depth - 1, INT_MIN, INT_MAX);
-			ScoredMove _move = {m.list[i], alp};
-			ScoredMoves.push_back(_move);
+			make_move(&b, m.moves[i]);
+			alp = alphabeta(b, depth - 1, INT_MIN, INT_MAX);
+			//undo_move(&b, m.moves[i]);
+			scored_move _move = {m.moves[i], alp};
+			scored_moves.push_back(_move);
 			if(val < alp){
 				val = alp;
 			}
 		}
 		else{
-			alp = alphabeta(FromTo(b, m.list[i]), depth - 1, INT_MIN, INT_MAX);
+			make_move(&b, m.moves[i]);
+			alp = alphabeta(b, depth - 1, INT_MIN, INT_MAX);
+			//undo_move(&b, m.moves[i]);
 			//ReadableBoard(FromTo(b, m.list[i])); std::cout << "alp " << alp << std::endl;
-			ScoredMove _move = {m.list[i], alp};
-			ScoredMoves.push_back(_move);
+			scored_move _move = {m.moves[i], alp};
+			scored_moves.push_back(_move);
 			if(val > alp){
 				val = alp;
 			}
@@ -41,24 +45,26 @@ ScoredMove Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOMET
 	int swapped = 1;
 	while(swapped){
 		swapped = 0;
-		for(int i = 0; i < ScoredMoves.size() - 1; i++){
-			if( (side == WHITE && ScoredMoves[i].val < ScoredMoves[i+1].val) || (side == BLACK && ScoredMoves[i].val > ScoredMoves[i+1].val)){
-				Swap_ScoredMove(&ScoredMoves[i], &ScoredMoves[i+1]);
+		for(int i = 0; i < scored_moves.size() - 1; i++){
+			if( (side == WHITE && scored_moves[i].val < scored_moves[i+1].val) || (side == BLACK && scored_moves[i].val > scored_moves[i+1].val)){
+				Swap_scored_move(&scored_moves[i], &scored_moves[i+1]);
 				swapped = 1;
 			}
 		}
 	}
 	int max_val_size = 0;
-	for(int i = 0; i < ScoredMoves.size(); i++) if(ScoredMoves[i].val == val) max_val_size++;
+	for(int i = 0; i < scored_moves.size(); i++) if(scored_moves[i].val == val) max_val_size++;
 	//if(max_val_size == 0) assert(0);
-	ScoredMove Picked_move = ScoredMoves[rand() % max_val_size];
+	scored_move picked_move = scored_moves[rand() % max_val_size];
 	int Fold_id = 0;
-	position sim_pos = FromTo(b, Picked_move.move);
+	position sim_pos = b;
+	make_move(&sim_pos,picked_move.move);
 	while(Check_Three_Fold( Hash_Position(&sim_pos))){
-		if(Fold_id == ScoredMoves.size() - 1) break;
-		if( !(side == WHITE && ScoredMoves[Fold_id + 1].val >= 0) || (side == BLACK && ScoredMoves[Fold_id + 1].val <= 0) ) break;
-		Picked_move = ScoredMoves[Fold_id++];
-		sim_pos = FromTo(b, Picked_move.move);
+		if(Fold_id == scored_moves.size() - 1) break;
+		if( !(side == WHITE && scored_moves[Fold_id + 1].val >= 0) || (side == BLACK && scored_moves[Fold_id + 1].val <= 0) ) break;
+		picked_move = scored_moves[Fold_id++];
+		position sim_pos = b;
+		make_move(&sim_pos,picked_move.move);
 	}
-	return Picked_move;
+	return picked_move;
 }

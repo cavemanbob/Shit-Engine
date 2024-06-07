@@ -1,15 +1,20 @@
-inline bool BitCheck(u64 x, int s){
+/*inline bool BitCheck(u64 x, int s){
 	return 1ULL << s & x;
-}
+}*/
+#define set_bit(bitboard, square) ((bitboard) |= (1ULL << (square)))
+#define get_bit(bitboard, square) ((bitboard) & (1ULL << (square)))
+#define pop_bit(bitboard, square) ((bitboard) &= ~(1ULL << (square)))
+#define move_bit(bitboard, source, destination)\
+		  ((bitboard) ^= 1ULL << (source) | 1ULL << (destination))
 
-inline u8 BitCount(u64 x){
+
+inline u8 bit_count(u64 x){
 	return __builtin_popcountll(x);
 }
-// _builtin_ctzll(x)
-inline u8 Ls1bIndex(u64 x){
-		return __builtin_ffsll(x) - 1;
-}
 
+inline u8 lsb(u64 x){
+		return __builtin_ctzll(x);
+}
 
 u64 rand64(){
 	u64 x = state;
@@ -75,13 +80,13 @@ std::string ctos(int x){ // cordinate to string 54 -> e4
 }
 
 void PrintBitBoard(u64 b){
+	std::cout << '\n';
 	for(int i=7; i>=0;i--){
 		for(int j=0; j<8; j++){
-			std::cout << (BitCheck(b, i * 8 + j) ? "1":"0");
+			std::cout << (get_bit(b, i * 8 + j) ? "1":"0");
 		}
 		std::cout << '\n';
 	}
-	std::cout << '\n';
 }
 
 void ReadableBoard(position b){
@@ -89,20 +94,17 @@ void ReadableBoard(position b){
 	for(int i=7; i>=0; i--){
 		std::cout << i+1 << ' ';
 		for(int j=0;j<8;j++){
-			u64* s = &b.wr;
 			int k;
 			for(k=0; k<12; k++){
-				if( *(s+k) & (1ULL << i*8+j)){
+				if( b.bitboards[k] & (1ULL << i*8+j)){
 					std::cout << StrPieces[k] << " ";
 					break;
 				}
 			}
-#ifdef DEBUG
-			if(b.oldsquare == i * 8 + j &&  !(b.occupied & 1ULL << b.oldsquare)){
+			if(b.from == i * 8 + j && !get_bit((b.occupied[0] | b.occupied[1]), b.from)){
 				std::cout << "x ";
 				continue;
 			}
-#endif
 			if(k==12){
 				std::cout << ". ";
 			}
@@ -112,19 +114,12 @@ void ReadableBoard(position b){
 	std::cout << "  A B C D E F G H\n\n";
 }
 
-inline int SwapSide(u8 side){
-	return (side == WHITE) ? BLACK : WHITE;
-}
-
-inline int GetSide(u64 key){
-	return (key >> 8 & 1ULL);
-}
 
 
 u64 Hash_Position(position *x){
-	u64 key = 0ULL;
-	for(int i = 0; i < 15; i++){
-		key ^= *(&x->occupied +i);
+	u64 key = x->occupied[WHITE] ^ x->occupied[BLACK];
+	for(int i = 0; i < 12; i++){
+		key ^= x->bitboards[i];
 	}
 	return key;
 }
@@ -135,4 +130,110 @@ int Check_Three_Fold(u64 new_hash){
 		if(game_history[i] == new_hash) k++;
 	}
 	return (k>=2) ? 1 : 0;
+}
+
+
+
+void ApplyFen(position *b, char *fen){
+	*b = {};
+	//game_history = {};
+	for(int i = 0; i < game_history_size; i++) game_history[i] = 0;
+	game_history_size = 0;
+
+	if(strncmp(fen, "startpos", 8) == 0) fen = START_FEN;
+	char pieces[] = "RNBQKPrnbqkp";
+	char strfen[200];
+	strcpy(strfen, fen);
+	char *t = strtok(strfen, " \n");
+	int space = 0, piece = 0, sq = 56;
+	while(t){
+		if(space == 0){
+			int i = 0;
+			while(t[i] != 0){
+				if(t[i] == '/'){
+					sq -= 17;
+				}
+				else if(isdigit(t[i])){
+					sq += t[i] - 49;
+				}
+				else{
+					piece = strchr(pieces, t[i]) - pieces;
+					if(piece < 6){ //white
+						set_bit(b->occupied[WHITE], sq);
+						set_bit(b->bitboards[piece], sq);
+					}
+					else{ //black
+						set_bit(b->occupied[BLACK], sq);
+						set_bit(b->bitboards[piece], sq);
+					}
+				}
+				i++;
+				sq++;
+			}
+			space++;
+		}
+		else if(space == 1){
+			if(*t == 'w') b->turn = WHITE;
+			else b->turn = BLACK;
+			space++;	
+		}
+		else if(space == 2){
+			int i = 0;
+			while(t[i] != 0){
+				t[i] == 'K' ? b->castling |= 1ULL << 3 :
+				t[i] == 'Q' ? b->castling |= 1ULL << 2 :
+				t[i] == 'k' ? b->castling |= 1ULL << 1 :
+				t[i] == 'q' ? b->castling |= 1ULL << 0 : 1;
+				i++;
+			}
+			space++;
+		}
+		else if(space == 3){// get enpass sq
+			if(*t != '-'){
+				char str[] = "abcdefgh";
+				int sq = 0;
+				sq += strchr(str, *t) - str;
+				sq += (int)(*(t + 1) - '0' - 1) * 8; // to square when u made enpass
+				//std::cout << "GEPS " << sq << std::endl;
+				b->enpass_sq = sq;
+			}
+			space++;
+		}
+		else if(space == 4){
+			b->fifty_move = std::stoi(t);
+			space++;
+		}
+		else if(space == 5){
+			b->move_counter = std::stoi(t);
+			space++;	
+		}
+		t = strtok(NULL, " \n");
+	}
+}
+
+//debug functions
+
+void print_u8(u8 x){
+	for(int i = 0; i < 8; i++) std::cout << (get_bit(x,i) ? "1" : "0");
+	std::cout << "\n";
+}
+
+void print_position_flags(position *b){
+	std::cout << "moves_counter " << (int)b->move_counter << std::endl;
+	std::cout << "turn " << (int)b->turn << std::endl;
+	std::cout << "from " << (int)b->from << std::endl;
+	std::cout << "to " << (int)b->to << std::endl;
+	std::cout << "enpass_sq " << (int)b->enpass_sq << std::endl;
+	std::cout << "castling\n";
+	print_u8(b->castling);
+	std::cout << "fifty_move " << (int)b->fifty_move << std::endl;
+	std::cout << "captured_piece " << (int)b->captured_piece << std::endl;
+}
+
+void print_position_bitboards(position *b){
+	PrintBitBoard(b->occupied[0]);
+	std::cout << "BLACK\n"; 
+	PrintBitBoard(b->occupied[1]);
+	std::cout << "WHITE\n";
+	for(int i = 0; i < 12; i++){PrintBitBoard(b->bitboards[i]);std::cout << i << std::endl;}
 }

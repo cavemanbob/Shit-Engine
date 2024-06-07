@@ -127,13 +127,13 @@ void InitFullBishopAttacks(){
 
 void FindMagics(u64* mask, u64* magictable, u64 lookup[][4096], int piece){
 	for(int square = 0; square < 64; square++){
-		u64 km[4096], maskcom[4096], shiftid = BitCount(mask[square]), magic;
+		u64 km[4096], maskcom[4096], shiftid = bit_count(mask[square]), magic;
 		u8 checkbit ;
 		//fill maskcom
 		
 		for(int permid=0; permid < pow(2, shiftid); permid++){
 			u64 c = permid, l = 0ULL, m = mask[square]; // c to l based m
-			u64 t = BitCount(c);
+			u64 t = bit_count(c);
 			for(int h =0; h < t; h++){ // make l a perm of relevant mask
 				const int ZeroCounter = __builtin_ctzll(c);
 				for(int k=0; k< ZeroCounter; k++) m &= m - 1;
@@ -145,7 +145,7 @@ void FindMagics(u64* mask, u64* magictable, u64 lookup[][4096], int piece){
 		}
 		do{
 			u64 l;
-			do{magic = rand64() & rand64() & rand64();}while(!magic || BitCount(magic) >= 10);
+			do{magic = rand64() & rand64() & rand64();}while(!magic || bit_count(magic) >= 10);
 			checkbit = 0;
 			memset(km, 0, sizeof(km));
 
@@ -180,51 +180,51 @@ void FindMagics(u64* mask, u64* magictable, u64 lookup[][4096], int piece){
 			u64 l = maskcom[permid];
 			if(piece == ROOK){
 				//left
-				for(int i=1; !(BitCheck(l, square + (i-1) * WEST)) && i <= square%8; i++)filteredblocker |= 1ULL << (square + i * WEST);
+				for(int i=1; !(get_bit(l, square + (i-1) * WEST)) && i <= square%8; i++)filteredblocker |= 1ULL << (square + i * WEST);
 /*				for(int i=1; i<= square%8; i++){
 					filteredblocker |= 1ULL << square - i;
-					if(BitCheck(l, square - i) == 1)
+					if(get_bit(l, square - i) == 1)
 						break;
 				}
 */				//right
 				for(int i=1; i<=7 - square%8; i++){
 					filteredblocker |= 1ULL << square + i;
-					if(BitCheck(l, square + i) == 1)
+					if(get_bit(l, square + i))
 						break;
 				}
 				//up
 				for(int i=1; i<=7 - square/8; i++){
 					filteredblocker |= 1ULL << square + i * 8;
-					if(BitCheck(l, square + i * 8) == 1)
+					if(get_bit(l, square + i * 8))
 						break;
 				}
 				//down
 				for(int i=1; i<= square/8; i++){
 					filteredblocker |= 1ULL << square - i * 8;
-					if(BitCheck(l, square - i * 8) == 1)
+					if(get_bit(l, square - i * 8))
 						break;
 				}
 			}
 			else if(piece == BISHOP){
 				int TopSpace = 7 - square/8, BottomSpace = square/8, LeftSpace = square%8, RightSpace = 7 - square%8;
 				for(int j=1; j <= TopSpace && j <= LeftSpace; j++){
-					filteredblocker |= 1ULL << (square + j * (NORTH + WEST)); if(BitCheck(l, square + j * (NORTH + WEST))) break;}
+					filteredblocker |= 1ULL << (square + j * (NORTH + WEST)); if(get_bit(l, square + j * (NORTH + WEST))) break;}
 				for(int j=1; j <= TopSpace && j <= RightSpace; j++){
-					filteredblocker |= 1ULL << (square + j * (NORTH + EAST)); if(BitCheck(l, square + j * (NORTH + EAST))) break;}
+					filteredblocker |= 1ULL << (square + j * (NORTH + EAST)); if(get_bit(l, square + j * (NORTH + EAST))) break;}
 				for(int j=1; j <= BottomSpace && j <= RightSpace; j++){
-					filteredblocker |= 1ULL << (square + j * (SOUTH + EAST)); if(BitCheck(l, square + j * (SOUTH + EAST))) break;}
+					filteredblocker |= 1ULL << (square + j * (SOUTH + EAST)); if(get_bit(l, square + j * (SOUTH + EAST))) break;}
 				for(int j=1; j <= BottomSpace && j <= LeftSpace; j++){
-					filteredblocker |= 1ULL << (square + j * (SOUTH + WEST)); if(BitCheck(l, square + j * (SOUTH + WEST))) break;}
+					filteredblocker |= 1ULL << (square + j * (SOUTH + WEST)); if(get_bit(l, square + j * (SOUTH + WEST))) break;}
 			}
 			lookup[square][ (l * magic) >> (64 - shiftid)] = filteredblocker;
 		}
 	}
 }
 inline u64 GetRookWay(u64 b, int square){
-	return RookBase[square][ (b * RookMagics[square]) >> (64 - BitCount(RelevantRookMask[square]))];
+	return RookBase[square][ (b * RookMagics[square]) >> (64 - bit_count(RelevantRookMask[square]))];
 }
 inline u64 GetBishopWay(u64 b, int square){
-	return BishopBase[square][ (b * BishopMagics[square]) >> (64 - BitCount(RelevantBishopMask[square]))];
+	return BishopBase[square][ (b * BishopMagics[square]) >> (64 - bit_count(RelevantBishopMask[square]))];
 }
 
 
@@ -237,4 +237,22 @@ void Init_pestos(){
 			eg_table[p + 6][sq] = eg_value[p] + eg_pesto_table[p][FLIP(sq)];
 		}
 	}
+}
+
+
+
+void init_all(){
+	InitPawnAttacks();
+	InitPawnPushes();
+	InitKnightAttacks();
+	InitKingAttacks();
+	InitRookAttacks();
+	InitBishopAttacks();
+	InitFullRookAttacks();
+	InitFullBishopAttacks();
+	FindMagics(RelevantBishopMask, BishopMagics, BishopBase, BISHOP);
+	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
+	rand64();
+	Init_pestos();
+	srand(time(NULL));
 }
