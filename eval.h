@@ -29,7 +29,27 @@ int Evaluate(position *b){
 	int mgPhase = GamePhase;
 	if(mgPhase > 24) mgPhase = 24; // promotion
 	int egPhase = 24 - mgPhase;
-	//std::cout << mgScore << " " << mgPhase << " " << egScore << " " << egPhase << std::endl;
-	//std::cout << "val " <<  (mgScore * mgPhase + egScore * egPhase) / 24 << std::endl;
+	
+/*	//double pawn
+	const u64 white_pawns = b->bitboards[pawn];
+	const u64 black_pawns = b->bitboards[pawn + 6];
+	
+	mgScore -= (bit_count(white_pawns | white_pawns << 8) - bit_count(black_pawns | black_pawns << 8)) * 20;
+	egScore -= (bit_count(white_pawns | white_pawns << 8) - bit_count(black_pawns | black_pawns << 8)) * 50;
+
+	//late game material is more cruial
+	if(egPhase > mgPhase + 3){
+		//printf("%d\n", egPhase);
+		mgScore += (bit_count(b->occupied[WHITE] ^ b->bitboards[pawn]) - bit_count(b->occupied[BLACK] ^ b->bitboards[pawn + 6])) * 300;
+		//printf("%d\n", (bit_count(b->occupied[WHITE] ^ b->bitboards[pawn]) - bit_count(b->occupied[BLACK] ^ b->bitboards[pawn + 6])) * 30000);
+	}*/
+
 	return (mgScore * mgPhase + egScore * egPhase) / 24;
 }
+
+
+
+
+
+
+

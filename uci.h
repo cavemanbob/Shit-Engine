@@ -1,6 +1,6 @@
 
 
-u64 perft(position b, int depth){
+u64 perft(position *b, int depth){
 	if(depth == 1){
 		moves  m;
 		movegen(&m, b);
@@ -11,9 +11,9 @@ u64 perft(position b, int depth){
 	movegen(&m, b);
 	u64 move_count = 0;
 	for(int i=0; i < m.size; i++){
-		make_move(&b, m.moves[i]);
+		make_move(b, m.moves[i]);
 		move_count += perft(b, depth - 1);
-		undo_move(&b, m.moves[i]);
+		undo_move(b, m.moves[i]);
 	}
 	return move_count;
 }
@@ -27,7 +27,7 @@ position notation_move(position b, char *inp){
 	to += strchr(alphabet, inp[2]) - alphabet;
 	to += ((u8)inp[3] - '0' - 1) * 8;
 	if(inp[4] != 0 && inp[4] != ' '){//promating move
-		move _move = {from, to, pawn, (u8)((strchr(Promoting_str, inp[4]) - Promoting_str) + 2)};
+		move _move = {from, to, pawn, (u8)((strchr(Promoting_str, inp[4]) - Promoting_str) + 2), b.turn};
 		make_move(&b, _move);
 		return b;
 	}
@@ -36,19 +36,60 @@ position notation_move(position b, char *inp){
 		if(get_bit(b.bitboards[piece] , from)) 
 			break;
 	if( (piece == PAWN_W || piece == PAWN_B) && (abs((int)from % 8 - (int)to % 8) > 0) && get_bit(occupied, to) == 0){
-		move _move = {from, to, pawn, b.turn == WHITE ? en_w : en_b};
+		move _move = {from, to, pawn, b.turn == WHITE ? en_w : en_b, b.turn};
 		make_move(&b, _move);
 		return b;
 	}
-	move _move = {from, to, (u8)(piece + 1 - 6 * (1 - b.turn)), only_move};
+	if( (piece == KING_W || piece == KING_B) && abs(int(from) % 8 - int(to) % 8) > 1){
+		move _move;
+		if(to == 58) _move = {from, to, king, long_castle_b, b.turn};
+		if(to == 62) _move = {from, to, king, short_castle_b, b.turn};
+		if(to == 2) _move = {from, to, king, long_castle_w, b.turn};
+		if(to == 6) _move = {from, to, king, short_castle_w, b.turn};
+		make_move(&b, _move);
+		return b;
+	}
+	piece = piece %6;
+	move _move = {from, to, (u8)(piece), only_move, b.turn};
 	make_move(&b, _move);
 	return b;
 }
 
+char * find_pv(position b){
+	char *pv_str =(char *)malloc(256 * sizeof(char));
+	//ReadableBoard(b);	
+	while(1){
+		int find = 0;
+		moves m;
+		movegen(&m, &b);
+		for(int i =0; i < m.size; i++){
+			make_move(&b, m.moves[i]);
+			const u64 pos_hash = hash_position(&b);
+			//ReadableBoard(b);
+			printf("in hash: %x\n", pos_hash);
+			//ReadableBoard(b);
+			undo_move(&b, m.moves[i]);
+			//std::cout << pos_hash << std::endl;
+			if(pos_hash == Game_History[b.move_counter]){
+				make_move(&b, m.moves[i]);
+				//ReadableBoard(b);
+				//printf("x %s",ctos(m.moves[i].from).c_str() );
+				//sprintf(pv_str + strlen(pv_str), "%s%s%c ", ctos(m.moves[i].from).c_str(), ctos(m.moves[i].to).c_str(),
+						//((m.moves[i].move_type > 1 && 7 > m.moves[i].move_type) ? Promoting_str[m.moves[i].move_type - 2] : ' '));
+				find = 1;
+				break;
+			}
+		}
+		if(find == 0) break;
+	}
+	return pv_str;
+}
 
 
-#define SEARCH_DEPTH_LONG_TIME 6
-#define SEARCH_DEPTH_LOW_TIME 5
+
+#define SEARCH_DEPTH_LONG_TIME 7
+#define SEARCH_DEPTH_LOW_TIME 6
+#define SEARCH_DEPTH_VERY_LOW_TIME 5
 #define TEXT_BUFFER 3000
 void Uci(){
 	init_all();
@@ -73,14 +114,15 @@ void Uci(){
 		else if(strcmp(t, "position") == 0){
 			t = strtok(NULL, "\n"); // get all str
 			ApplyFen(&x, t);
-			game_history[game_history_size++] = Hash_Position(&x);
+			Game_History[Game_History_size++] = hash_position(&x);
 			t = strchr(t, 'm');
 			if(t){ // there are "moves" str
 				t += 6;
 				t = strtok(t, " \n");
 				while(t){
-					x = notation_move(x, t);	
-					game_history[game_history_size++] = Hash_Position(&x);
+					x = notation_move(x, t);
+					Flags_History_Size -= 4;
+					Game_History[Game_History_size++] = hash_position(&x);
 					t = strtok(NULL, " \n");
 				}
 			}
@@ -127,25 +169,42 @@ void Uci(){
 				t = strtok(NULL, " \n");
 			}
 			//time control
-			if(_depth == 1 && (_game.wtime < 30000 || _game.btime < 30000)){
+			if(_depth == 1 && (_game.wtime < 300 || _game.btime < 300)){
+				_depth = 4;
+			}
+			else if(_depth == 1 && (_game.wtime < 2000 || _game.btime < 2000)){
+				_depth = SEARCH_DEPTH_VERY_LOW_TIME;
+			}
+			else if(_depth == 1 && (_game.wtime < 30000 || _game.btime < 30000)){
 				_depth = SEARCH_DEPTH_LOW_TIME;
 			}
 			else if(_depth == 1){
-				_depth = SEARCH_DEPTH_LOW_TIME;
+				_depth = 6;
 			}
 			Global_depth = _depth;
 			//infos
 			clock_t ct = clock();
 			std::cout << "info depth " << _depth << std::endl;
+			//char str[5];
+			//sprintf(str, "%d", _depth);
+			//fprintf(fptr, str);
 			scored_move Picked_move = Next(x, _depth);
 			//x = FromTo(x, Picked_move.move);
 			make_move(&x, Picked_move.move);
 			position _x = x;
-			bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
+			
+			std::cout << "info string val = " << Picked_move.val << std::endl;
+			//bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
 			std::cout << "info nodes " << Node_Total << std::endl;
-			std::cout << "bestmove " << bestmove << ((Picked_move.move.move_type > 1 && 7 > Picked_move.move.move_type) ? Promoting_str[Picked_move.move.move_type - 2] : ' ') << std::endl;
-			std::cout << "info pv ";
-	/*		for(_depth = _depth - 1;_depth > 0; _depth--){
+			std::cout << "bestmove " << move_to_str(Picked_move.move);
+			//std::cout << "bestmove " << bestmove << ((Picked_move.move.move_type > 1 && 7 > Picked_move.move.move_type) ? Promoting_str[Picked_move.move.move_type - 2] : ' ') << std::endl;
+			for(int i = 1; i < 64; i++){
+				printf(" %s", move_to_str(g_PV[i]));
+				if(g_PV[i].from == g_PV[i].to) break;
+			}
+			printf("\n");
+			/*		std::cout << "info pv ";
+			for(_depth = _depth - 1;_depth > 0; _depth--){
 				//std::cout << "depth" << _depth;
 				Picked_move = Next(x, _depth);
 				if(Picked_move.move.to == Picked_move.move.from) break; //mate or stalemate
@@ -156,13 +215,15 @@ void Uci(){
 			std::cout << std::endl;
 			x = _x; // go back
 			ct = clock() - ct;
-			std::cout << "info string " << ((double)ct)/CLOCKS_PER_SEC << "sec" << "  hash: " << Hash_Position(&x) << std::endl;
-			std::cout << left << "  " << right << std::endl;
+			printf("info string %4lf sec  hash: %x \n", ((double)ct)/CLOCKS_PER_SEC, hash_position(&x));
+			//std::cout << left << "  " << right << std::endl;
 			fflush(stdout);
 
 		}
 		else if(strcmp(t, "d") == 0){
 			ReadableBoard(x);
+			//print_position_bitboards(&x);
+			//print_position_flags(&x);
 		}
 		else if(strcmp(t, "stop") == 0){
 			fprintf(fptr,bestmove.c_str());
@@ -183,7 +244,10 @@ void Uci(){
 			}
 			else if(t){
 				ApplyFen(&x, t);
+				x.captured_piece = 1;
+				int eval_q = ((x.turn == WHITE) ? -1 : +1)  * Quiesce(&x, MIN_SCORE, MAX_SCORE, 0);
 				std::cout << "value " << Evaluate(&x) << std::endl;
+				std::cout << "q_search " << eval_q << std::endl;
 			}
 			else{
 				std::cout << "value " << Evaluate(&x) << std::endl;
@@ -194,21 +258,20 @@ void Uci(){
 			t = strtok(NULL, " \n");
 			if(t == NULL) continue;
 			moves m;
-			movegen(&m, x);
+			movegen(&m, &x);
 			u64 move_count = 0;
 			if(std::stoi(t) == 1){
 				for(int i = 0; i < m.size; i++){
-					std::cout << ctos(m.moves[i].from) << ctos(m.moves[i].to) << Promoting_str[(m.moves[i].move_type > 2 && m.moves[i].move_type < 7) ? m.moves[i].move_type - 2 : 0] << " 1" << std::endl;
+					std::cout << move_to_str(m.moves[i]) << " 1";
 				}
 				std::cout << "move" << m.size << std::endl;
 			}
 			else{
 				for(int i=0; i < m.size; i++){
 					make_move(&x, m.moves[i]);
-					u64 Current_Perft = perft(x, std::stoi(t) - 1);
+					u64 Current_Perft = perft(&x, std::stoi(t) - 1);
 					undo_move(&x, m.moves[i]);
-					std::cout << ctos(m.moves[i].from) << ctos(m.moves[i].to) << Promoting_str[(m.moves[i].move_type > 2 && m.moves[i].move_type < 7) ? m.moves[i].move_type - 2 : 0]
-					  	<< " " << Current_Perft << std::endl;
+					std::cout << move_to_str(m.moves[i]) << " " << Current_Perft;
 					move_count += Current_Perft;
 				}
 				std::cout << "depth " << std::stoi(t) << " total " << move_count << std::endl;
@@ -216,19 +279,20 @@ void Uci(){
 			ct = clock() - ct;
 			std::cout << ((double)ct)/CLOCKS_PER_SEC << std::endl;
 		}
-		else if(strcmp(t, "make_move") == 0){
+		else if(strcmp(t, "q") == 0){
 			t = strtok(NULL, " \n");
-			int i = std::stoi(t);
-			//t = strtok(NULL, " \n");
-			//ApplyFen(&x, t);
-			moves m;
-			movegen(&m, x);
-			make_move(&x, m.moves[i]);
-			undo_move(&x, m.moves[i]);
-			//for(int i = 0; i < 2; i++) PrintBitBoard(x.occupied[i]);
-			//std::cout << "----------\n";
-			//for(int i = 0; i < 12; i++) {PrintBitBoard(x.bitboards[i]);std::cout << i << std::endl;}
-			//std::cout << "from " << (int)m.moves[i].from << " to " << (int)m.moves[i].to << std::endl;
+			if(t == NULL) break;
+			position q_search_pos;
+			ApplyFen(&q_search_pos, t);
+			//std::cout << "q_search val: " << -Quiesce(&q_search_pos, MIN_SCORE, MAX_SCORE) << std::endl;
+
+		}
+		else if(strcmp(t, "n") == 0){
+			t = strtok(NULL, " \n");
+			if(t == NULL) break;
+			position n_search_pos;
+			ApplyFen(&n_search_pos, t);
+			//std::cout << "negamax val: " << negamax(&n_search_pos, 5, MIN_SCORE, MAX_SCORE,) << std::endl;
 		}
 		fclose(fptr);
 		//fflush(stdout);

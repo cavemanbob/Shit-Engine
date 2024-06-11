@@ -239,6 +239,14 @@ void Init_pestos(){
 	}
 }
 
+void init_zorbist(){
+	for(int i = 0; i < 64; i++){
+		for(int j = 0; j < 18; j++){
+			Zorbist[j][i] = rand64();
+		}
+	}
+	Zorbist_Black = rand64();
+}
 
 
 void init_all(){
@@ -254,5 +262,6 @@ void init_all(){
 	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
 	rand64();
 	Init_pestos();
+	init_zorbist();
 	srand(time(NULL));
 }

@@ -69,14 +69,21 @@ inline bool shift(u64 b){
 }
 
 
-
-std::string ctos(int x){ // cordinate to string 54 -> e4
-	std::string StrPieces = "abcdefgh";
-	std::string r("  ");
+const char* ctos(int x){ // cordinate to string 54 -> e4
+	const char StrPieces[] = "abcdefgh";
+	static char r[] = "  ";
 	r[0] = StrPieces[x%8];
 	r[1] = '0' + x/8 + 1;
-	//std::cout << "x " << x << " " <<  r  << std::endl;
 	return r;
+}
+
+const char* move_to_str(move m){
+	static char p_str[] = " rnbqkp";
+	static char str[8];
+	memset(str, 0, 8);
+	sprintf(str + strlen(str), "%s", ctos(m.from));
+	sprintf(str + strlen(str), "%s%c", ctos(m.to), Promoting_str[(m.move_type > 2 && m.move_type < 7) ? m.move_type - 2 : 0]);
+	return str;
 }
 
 void PrintBitBoard(u64 b){
@@ -88,6 +95,7 @@ void PrintBitBoard(u64 b){
 		std::cout << '\n';
 	}
 }
+
 
 void ReadableBoard(position b){
 	std::string StrPieces = "RNBQKPrnbqkp";
@@ -114,20 +122,49 @@ void ReadableBoard(position b){
 	std::cout << "  A B C D E F G H\n\n";
 }
 
-
-
-u64 Hash_Position(position *x){
+/*
+u64 hash_position(position *x){
 	u64 key = x->occupied[WHITE] ^ x->occupied[BLACK];
+	std::cout << key << std::endl;
 	for(int i = 0; i < 12; i++){
 		key ^= x->bitboards[i];
+	std::cout << key << std::endl;
 	}
 	return key;
+}*/
+u64 hash_position(position *x){
+	u64 h = x->turn == WHITE ? 0 : Zorbist_Black;
+	u64 occupied = x->occupied[WHITE] | x->occupied[BLACK];
+	
+	while(occupied){
+		int i = lsb(occupied);
+		int j;
+		for(j = 0; j < 12; j++){
+			if(get_bit(x->bitboards[j], i)) break;
+		}
+		h ^= Zorbist[j][i];
+		occupied &= occupied - 1;
+	}
+	h ^= Zorbist[13][x->castling];
+	h ^= Zorbist[14][x->enpass_sq];
+	h ^= Zorbist[15][x->move_counter % 64];
+
+	return h;
 }
+inline u64 hash_move_piece(u64 old_hash, u8 piece, u8 from, u8 to, u8 side){
+	if(side == WHITE)
+		old_hash ^= Zorbist_Black;
+	old_hash ^= Zorbist[piece + 6 * (1 - side)][from];
+	old_hash ^= Zorbist[piece + 6 * (1 - side)][to];
+	return old_hash;
+}
+
+
 
 int Check_Three_Fold(u64 new_hash){
 	int k = 0;
-	for(int i = 0; i < game_history_size; i++){
-		if(game_history[i] == new_hash) k++;
+	for(int i = 0; i < Game_History_size; i++){
+		if(Game_History[i] == new_hash) k++;
 	}
 	return (k>=2) ? 1 : 0;
 }
@@ -137,10 +174,10 @@ int Check_Three_Fold(u64 new_hash){
 void ApplyFen(position *b, char *fen){
 	*b = {};
 	//game_history = {};
-	for(int i = 0; i < game_history_size; i++) game_history[i] = 0;
-	game_history_size = 0;
+	//for(int i = 0; i < Game_History_size; i++) Game_History[i] = 0;
+	Game_History_size = 0;
 
-	if(strncmp(fen, "startpos", 8) == 0) fen = START_FEN;
+	if(strncmp(fen, "startpos", 8) == 0) {fen = START_FEN;Flags_History_Size = 0;}
 	char pieces[] = "RNBQKPrnbqkp";
 	char strfen[200];
 	strcpy(strfen, fen);
@@ -209,6 +246,7 @@ void ApplyFen(position *b, char *fen){
 		}
 		t = strtok(NULL, " \n");
 	}
+	b->hash = hash_position(b);
 }
 
 //debug functions

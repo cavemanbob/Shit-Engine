@@ -103,10 +103,31 @@ void make_move(position *b, move _move){
 	b->from = from;
 	b->to = to;
 	if(moved_piece == pawn && abs((int)from/8 - (int)to/8) > 1){b->enpass_sq = to + enpass_buffer;} else{b->enpass_sq = NO_SQUARE;}
+	if(b->captured_piece == NO_SQUARE && move_type == only_move && moved_piece != pawn){
+		b->fifty_move++;
+	}
+	else{
+		b->fifty_move = 0;
+	}
+
+	//hash based new flags
+	b->hash = hash_move_piece(b->hash, _move.moved_piece, _move.from, _move.to, _move.side);
+	b->hash ^= Zorbist[13][b->castling];
+	b->hash ^= Zorbist[14][b->enpass_sq];
+	b->hash ^= Zorbist[15][b->move_counter % 64];
+
+	push_position(b->hash);
 }
 
 
 void undo_move(position *b, move _move){
+	pop_position();
+
+	//hash do same thing cuz a xor b xor b = a
+	b->hash = hash_move_piece(b->hash, _move.moved_piece, _move.from, _move.to, _move.side);
+	b->hash ^= Zorbist[13][b->castling];
+	b->hash ^= Zorbist[14][b->enpass_sq];
+	b->hash ^= Zorbist[15][b->move_counter % 64];
 	//recalculate old flags
 	b->move_counter--;
 	b->from = _move.from;
@@ -176,33 +197,5 @@ void undo_move(position *b, move _move){
 	// Last pop flags
 	b->captured_piece = pop_flag();
 
-	return;
-	std::cout << "A";
-	position t = pop_position();
-	if(b->occupied[0] != t.occupied[0]) goto bug;
-	std::cout << "B";
-	if(b->occupied[1] != t.occupied[1]) goto bug;
-	std::cout << "C";
-	//for(int i = 0; i < 12; i++) {if(b->bitboards[i] != t.bitboards[i]) goto bug;std::cout << i << "-";}
-	if(b->move_counter != t.move_counter) goto bug;
-	std::cout << "D";
-	//std::cout << "=" << (int)b->enpass_sq << "-" << (int)t.enpass_sq << "=";
-	if(b->enpass_sq != t.enpass_sq) goto bug;
-	std::cout << "E";
-	if(b->captured_piece != t.captured_piece) goto bug;
-	std::cout << "F";
-	if(b->castling != t.castling) goto bug;
-	std::cout << "G";
-
-	return;
-bug:
-	std::cout << "move -> " << (int)_move.from << " - " << (int)_move.to << " piece " << (int)_move.moved_piece
-	<< "  move_type " << (int)_move.move_type << " side " << (int)_move.side << std::endl; 
-	PrintBitBoard(b->occupied[0]);
-	std::cout << "BLACK\n"; 
-	PrintBitBoard(b->occupied[1]);
-	std::cout << "WHITE\n";
-	for(int i = 0; i < 12; i++){PrintBitBoard(b->bitboards[i]);std::cout << i << std::endl;}
-	assert(0);
 }
 

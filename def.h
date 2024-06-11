@@ -10,6 +10,8 @@
 //#include <windows.h>
 #include <cassert>
 #define DEBUG
+#define MIN_SCORE (-200000)
+#define MAX_SCORE (200000)
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -35,6 +37,8 @@ struct position{
 	u8 castling; // sw lw sb lb   (6 -> its for did changed flag)
 	u8 fifty_move;
 	u8 captured_piece;
+	
+	u64 hash;
 };
 
 #define NO_SQUARE 65
@@ -77,9 +81,6 @@ enum Piece : u8{
 
 const char Promoting_str[8] = " rnbq";
 
-enum Promoting_Flag : u8{
-	NOPROMATE = 0ULL, ROOK_PROMATE = 1ULL, KNIGHT_PROMATE = 2ULL, BISHOP_PROMATE = 3ULL, QUEEN_PROMATE = 4ULL
-};
 
 enum side : int{
 	BLACK = 0, WHITE = 1
@@ -96,15 +97,6 @@ u64 state = 11349138731524945662ULL; //seed
 //#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 char START_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-/*
-enum Val : int{
-	PAWN_VAL = 100,
-	ROOK_VAL = 550,
-	BISHOP_VAL = 320,
-	KNIGHT_VAL = 280,
-	QUEEN_VAL = 1150,
-	KING_VAL = 20000
-};*/
 
 std::string bestmove = "      ";
 
@@ -118,6 +110,7 @@ struct game{
 u64 Node_Total = 0;
 u8 Move_Counter = 0; // move for current fen
 u8 Global_depth = 0;
+
 
 enum piece_types_enum : u8{
 	rook = 0, knight = 1, bishop = 2, queen = 3, king = 4, pawn = 5
@@ -153,9 +146,24 @@ inline void moves_add(moves *source, move move){
 	source->moves[source->size++] = move;
 }
 
-u64 game_history[512] = {};
-u64 game_history_size = 0ULL;
-u8 Flags_History[512] = {};
+u64 Game_History[512] = {};
+u64 Game_History_size = 0ULL;
+void push_position(u64 hash){
+	if(Game_History_size == 511){
+		printf("\nposition_stack capacity is full, push is not possible!\n");
+		assert(0);
+	}
+	Game_History[Game_History_size++] = hash;
+}
+u64 pop_position(){
+	if(Game_History_size == 0){
+		printf("\nposition_stack Size is 0, pop is not possible!\n");
+		assert(0);
+	}
+	return Game_History[--Game_History_size];
+}
+
+u8 Flags_History[512 * 8] = {};
 u16 Flags_History_Size = 0;
 void push_flag(u8 _flag){
 	if(Flags_History_Size == 511){
@@ -171,28 +179,37 @@ u8 pop_flag(){
 	}
 	return Flags_History[--Flags_History_Size];
 }
-position Position_History[512] = {};
-u16 Position_History_Size = 0;
-void push_position(position p){
-	//std::cout << "push position stack size: " << (int)Position_History_Size << std::endl;
-	if(Position_History_Size == 511){
-		printf("\nPosition capacity is full, push is not possible!\n");
+
+move PV_stack[64];
+u8 PV_stack_size = 0;
+void push_PV(move _move){
+	if(PV_stack_size == 63){
+		printf("\nPV_stack capacity is full, push is not possible!\n");
 		assert(0);
 	}
-	Position_History[Position_History_Size++] = p;
+	PV_stack[PV_stack_size++] = _move;
 }
-position pop_position(){
-	//std::cout << "pop position stack size: " << (int)Position_History_Size << std::endl;
-	if(Position_History_Size == 0){
-		printf("\nPosition Size is 0, pop is not possible!\n");
+move pop_PV(){
+	if(PV_stack_size == 0){
+		printf("\nPV_stack Size is 0, pop is not possible!\n");
 		assert(0);
 	}
-	return Position_History[--Position_History_Size];
+	return PV_stack[--PV_stack_size];
 }
 
-u64 left = 0;
-u64 right = 0;
-//u64 test = 0;
+
+
+
+u64 Zorbist[18][64];
+u64 Zorbist_Black;
+
+
+position Pos_Table[512] = {};
+//u64 PV[64][64] = {}; // possible move count in a position - depth
+move g_PV[64] = {};
+
+
+
 
 int Pos_Val_Table[64 * 6] = {
 				35,  29,  33,   4,  37,  33,  56,  50, //rook
@@ -257,7 +274,8 @@ int Pos_Val_Table[64 * 6] = {
 //int eg_value[6] = { 94, 281, 297, 512,  936,  0};
 //						  R    N    B    Q     K  P
 int mg_value[6] = { 477, 337, 365, 1025, 0, 82};
-int eg_value[6] = { 94, 281, 297, 512, 936, 0};
+//int eg_value[6] = { 94, 281, 297, 512, 936, 0};
+int eg_value[6] = { 512, 281, 297, 936, 0, 94};
 
 int mg_pawn_table[64] = {
       0,   0,   0,   0,   0,   0,  0,   0,
