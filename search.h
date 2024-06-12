@@ -1,7 +1,9 @@
 int tri_fold_rep(position *b){
+	int fold_count = 1;
 	for(int i = 2; i <= b->fifty_move; i+=2){
 		if(Game_History[b->move_counter - i] == b->hash){
-			return 1;
+			fold_count++;
+			if(fold_count == 3) return 1;
 		}
 	}
 	return 0;
@@ -39,13 +41,14 @@ int Quiesce(position *b, int alpha, int beta, int PLY) {
 
 
 int negamax(position *b, int depth, int alpha, int beta, move *PV){
+	const u8 PLY = Global_depth - depth;
+	Node_Total++;
+	
 	// reputation
 	if(tri_fold_rep(b) == 1 && alpha <= 0){
 		return 0;
 	}
 
-	Node_Total++;
-	const u8 PLY = Global_depth - depth;
 	if(depth <= 0){
 		//if(b->captured_piece != NO_CAPTURE_FLAG){
 			//return Quiesce(b, alpha, beta, 0);

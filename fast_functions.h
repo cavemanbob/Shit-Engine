@@ -147,12 +147,12 @@ u64 hash_position(position *x){
 	}
 	h ^= Zorbist[13][x->castling];
 	h ^= Zorbist[14][x->enpass_sq];
-	h ^= Zorbist[15][x->move_counter % 64];
+	//h ^= Zorbist[15][x->move_counter % 64];//discard cuz of 3-fold rep
 
 	return h;
 }
 inline u64 hash_move_piece(u64 old_hash, u8 piece, u8 from, u8 to, u8 side){
-	if(side == WHITE)
+	if(side != WHITE)
 		old_hash ^= Zorbist_Black;
 	old_hash ^= Zorbist[piece + 6 * (1 - side)][from];
 	old_hash ^= Zorbist[piece + 6 * (1 - side)][to];
