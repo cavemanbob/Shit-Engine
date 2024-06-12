@@ -17,7 +17,7 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 	int side = b.turn;
 	moves  m;
 	movegen(&m, &b);
-	if(m.size == 0) {scored_move _move = {}; return _move;} //mate
+	if(m.size == 0) {assert(0);scored_move _move = {}; return _move;} //mate
 	move_order(&b, &m);
 	std::vector<scored_move> scored_moves;
 	int val = MIN_SCORE;
@@ -54,7 +54,8 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 	}
 	int max_val_size = 0;
 	for(int i = 0; i < scored_moves.size(); i++) if(scored_moves[i].val == val) max_val_size++;
-	//if(max_val_size == 0) assert(0);
+	printf("val %d\n",val);
+	if(max_val_size == 0) assert(0);
 	
 	u8 pick_index = rand() % max_val_size;
 	scored_move picked_move = scored_moves[pick_index];
@@ -84,9 +85,8 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 		make_move(&sim_pos,picked_move.move);
 	}*/
 
-	make_move(&b, picked_move.move);
-	Game_History[b.move_counter] = hash_position(&b);
-	Pos_Table[b.move_counter] = b;
+	//make_move(&b, picked_move.move);
+	//Pos_Table[b.move_counter] = b;
 
 	return picked_move;
 }
