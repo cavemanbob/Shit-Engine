@@ -103,7 +103,7 @@ void make_move(position *b, move _move){
 	b->from = from;
 	b->to = to;
 	if(moved_piece == pawn && abs((int)from/8 - (int)to/8) > 1){b->enpass_sq = to + enpass_buffer;} else{b->enpass_sq = NO_SQUARE;}
-	if(b->captured_piece == NO_SQUARE && move_type == only_move && moved_piece != pawn){
+	if(b->captured_piece == NO_CAPTURE_FLAG && move_type == only_move && moved_piece != pawn){
 		b->fifty_move++;
 	}
 	else{
@@ -114,7 +114,7 @@ void make_move(position *b, move _move){
 	b->hash = hash_move_piece(b->hash, _move.moved_piece, _move.from, _move.to, _move.side);
 	b->hash ^= Zorbist[13][b->castling];
 	b->hash ^= Zorbist[14][b->enpass_sq];
-	b->hash ^= Zorbist[15][b->move_counter % 64];
+	//b->hash ^= Zorbist[15][b->move_counter % 64];
 
 	push_position(b->hash);
 }
@@ -127,7 +127,7 @@ void undo_move(position *b, move _move){
 	b->hash = hash_move_piece(b->hash, _move.moved_piece, _move.from, _move.to, _move.side);
 	b->hash ^= Zorbist[13][b->castling];
 	b->hash ^= Zorbist[14][b->enpass_sq];
-	b->hash ^= Zorbist[15][b->move_counter % 64];
+	//b->hash ^= Zorbist[15][b->move_counter % 64];
 	//recalculate old flags
 	b->move_counter--;
 	b->from = _move.from;

@@ -112,9 +112,10 @@ void Uci(){
 			fflush(stdout);
 		}
 		else if(strcmp(t, "position") == 0){
+			memset(Game_History, 0, sizeof(u64) * 512);
+			Game_History_size = 0;
 			t = strtok(NULL, "\n"); // get all str
 			ApplyFen(&x, t);
-			Game_History[Game_History_size++] = hash_position(&x);
 			t = strchr(t, 'm');
 			if(t){ // there are "moves" str
 				t += 6;
@@ -122,7 +123,6 @@ void Uci(){
 				while(t){
 					x = notation_move(x, t);
 					Flags_History_Size -= 4;
-					Game_History[Game_History_size++] = hash_position(&x);
 					t = strtok(NULL, " \n");
 				}
 			}
@@ -185,40 +185,22 @@ void Uci(){
 			//infos
 			clock_t ct = clock();
 			std::cout << "info depth " << _depth << std::endl;
-			//char str[5];
-			//sprintf(str, "%d", _depth);
-			//fprintf(fptr, str);
 			scored_move Picked_move = Next(x, _depth);
-			//x = FromTo(x, Picked_move.move);
 			make_move(&x, Picked_move.move);
-			position _x = x;
 			
 			std::cout << "info string val = " << Picked_move.val << std::endl;
-			//bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
 			std::cout << "info nodes " << Node_Total << std::endl;
-			std::cout << "bestmove " << move_to_str(Picked_move.move);
-			//std::cout << "bestmove " << bestmove << ((Picked_move.move.move_type > 1 && 7 > Picked_move.move.move_type) ? Promoting_str[Picked_move.move.move_type - 2] : ' ') << std::endl;
+			std::cout << "bestmove " << move_to_str(Picked_move.move) << std::endl;
+			/* pv line
 			for(int i = 1; i < 64; i++){
 				printf(" %s", move_to_str(g_PV[i]));
 				if(g_PV[i].from == g_PV[i].to) break;
-			}
-			printf("\n");
-			/*		std::cout << "info pv ";
-			for(_depth = _depth - 1;_depth > 0; _depth--){
-				//std::cout << "depth" << _depth;
-				Picked_move = Next(x, _depth);
-				if(Picked_move.move.to == Picked_move.move.from) break; //mate or stalemate
-				x = FromTo(x, Picked_move.move);
-				bestmove = ctos(Picked_move.move.from).append(ctos(Picked_move.move.to));
-				std::cout << " " << bestmove << ((x.key >> 28 & 7ULL) ? Promoting_str[x.key >> 28 & 7ULL] : ' ');
 			}*/
-			std::cout << std::endl;
-			x = _x; // go back
 			ct = clock() - ct;
-			printf("info string %4lf sec  hash: %x \n", ((double)ct)/CLOCKS_PER_SEC, hash_position(&x));
+			printf("info string %4lf sec  hash: %x \n", (double)ct/CLOCKS_PER_SEC, hash_position(&x));
 			//std::cout << left << "  " << right << std::endl;
+			
 			fflush(stdout);
-
 		}
 		else if(strcmp(t, "d") == 0){
 			ReadableBoard(x);
@@ -293,6 +275,11 @@ void Uci(){
 			position n_search_pos;
 			ApplyFen(&n_search_pos, t);
 			//std::cout << "negamax val: " << negamax(&n_search_pos, 5, MIN_SCORE, MAX_SCORE,) << std::endl;
+		}
+		else if(strcmp(t, "hash") == 0){
+			for(int i = 0; i < 64; i++){
+				printf("hash%d %x\n", i, Game_History[i]);
+			}
 		}
 		fclose(fptr);
 		//fflush(stdout);

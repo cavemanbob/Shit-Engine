@@ -62,7 +62,7 @@ void move_order(position *b, moves *x){
 		x->moves[j] = t_move;
 		i++;
 	}
-/*	//killer moves search
+	//killer moves search
 	int killer_l = capture_end;
 	for(i = capture_end; i < x->size; i++){
 		for(int j = 0; j < KILLER_SIZE && killer_l < x->size; j++){
@@ -72,10 +72,11 @@ void move_order(position *b, moves *x){
 			}
 		}
 	}
+	
 	//printf("killer_size %d\n", killer_l - capture_end);
 	//_sleep(300);
 
-*/
+
 /*	int swapped = 1;
 	while(swapped){// MVV LVA
 		swapped = 0;

@@ -1,7 +1,9 @@
 int tri_fold_rep(position *b){
+	int fold_count = 1;
 	for(int i = 2; i <= b->fifty_move; i+=2){
 		if(Game_History[b->move_counter - i] == b->hash){
-			return 1;
+			fold_count++;
+			if(fold_count == 3) return 1;
 		}
 	}
 	return 0;
@@ -12,13 +14,13 @@ int tri_fold_rep(position *b){
 int Quiesce(position *b, int alpha, int beta, int PLY) {
 	//const u8 PLY = Global_depth - depth;
 	Node_Total++;
-	int stand_pat = Evaluate(b);
+	int stand_pat = ((b->turn == WHITE) ? 1 : -1)  * Evaluate(b);
 	if( stand_pat >= beta )
 		return beta;
 	if( alpha < stand_pat )
 		alpha = stand_pat;
 	//if(b->move_counter - Move_Counter > 6)
-	if(PLY > 3)
+	if(PLY > 6)
 		return stand_pat;
 	moves  m;
 	movegen(&m, b);
@@ -39,13 +41,14 @@ int Quiesce(position *b, int alpha, int beta, int PLY) {
 
 
 int negamax(position *b, int depth, int alpha, int beta, move *PV){
+	const u8 PLY = Global_depth - depth;
+	Node_Total++;
+	if(b->fifty_move == 99) return 0;//check it	
 	// reputation
 	if(tri_fold_rep(b) == 1 && alpha <= 0){
 		return 0;
 	}
 
-	Node_Total++;
-	const u8 PLY = Global_depth - depth;
 	if(depth <= 0){
 		//if(b->captured_piece != NO_CAPTURE_FLAG){
 			//return Quiesce(b, alpha, beta, 0);
