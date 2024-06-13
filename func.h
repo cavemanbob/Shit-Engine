@@ -5,6 +5,7 @@
 #include "movegen.h"
 #include "move_order.h"
 #include "eval.h"
+#include "tt_table.h"
 #include "search.h"
 #include "pick_move.h"
 #include "uci.h"

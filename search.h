@@ -40,7 +40,7 @@ int Quiesce(position *b, int alpha, int beta, int PLY) {
 }
 
 
-int negamax(position *b, int depth, int alpha, int beta, move *PV){
+int negamax(position *b, u8 depth, int alpha, int beta, move *PV){
 	const u8 PLY = Global_depth - depth;
 	Node_Total++;
 	if(b->fifty_move == 99) return 0;//check it	
@@ -55,30 +55,50 @@ int negamax(position *b, int depth, int alpha, int beta, move *PV){
 		//}
 		return ((b->turn == WHITE) ? 1 : -1)  * Evaluate(b);
 	}
+	
 	moves l;
 	movegen(&l, b);
 	move_order(b, &l);
 	int val = MIN_SCORE + 1000 * PLY; // -200k
-	//printf("enemy king sq = %d, ", lsb(b->bitboards[king + 6 *  (1 - b->turn)]));
-	//ReadableBoard(*b);
-	//_sleep(2000);
-	if(l.size == 0 && is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0) return 0; //stealmate
+
+	//stealmate	
+	if(l.size == 0 && is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0) return 0;
+	
+	//each move
 	for(int i = 0; i < l.size; i++){
 		if(l.moves[i].from == l.moves[i].to) {printf("empty move tried search \n");assert(0);}
 		make_move(b, l.moves[i]);
 		int did_captured = b->captured_piece;
 		push_PV(l.moves[i]); //fixed size stack
-		val = std::max(val, -negamax(b, depth - 1, -beta, -alpha, PV));
+		
+		//check tt if there are no tt then search it;
+		tt *tt_l = get_tt(b->hash);
+
+		if(tt_l != NULL && tt_l->depth >= depth){
+			val = tt_l->val;
+		}
+		else{
+			 //no tt
+			val = std::max(val, -negamax(b, depth - 1, -beta, -alpha, PV));
+			set_tt(b->hash, val, depth);
+		}
+
+		
+	
+		
 		pop_PV();
 		undo_move(b, l.moves[i]);
+
+		//alpha-beta things
 		if(val > alpha){
 			alpha = val;
 		}
 		if (alpha >= beta){
-			if(did_captured != NO_SQUARE)
-				insert_killer(l.moves[i], b->move_counter);
+			//if(did_captured != NO_SQUARE)
+				//insert_killer(l.moves[i], b->move_counter);
 			break;
 		}
+
 	}
 	
 	return val;
