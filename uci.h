@@ -26,33 +26,34 @@ position notation_move(position b, char *inp){
 	from += ((u8)inp[1] - '0' - 1) * 8;
 	to += strchr(alphabet, inp[2]) - alphabet;
 	to += ((u8)inp[3] - '0' - 1) * 8;
-	if(inp[4] != 0 && inp[4] != ' '){//promating move
-		move _move = {from, to, pawn, (u8)((strchr(Promoting_str, inp[4]) - Promoting_str) + 2), b.turn};
-		make_move(&b, _move);
-		return b;
-	}
 	int piece;
 	for(piece=0; piece<12; piece++)
 		if(get_bit(b.bitboards[piece] , from)) 
 			break;
-	if( (piece == PAWN_W || piece == PAWN_B) && (abs((int)from % 8 - (int)to % 8) > 0) && get_bit(occupied, to) == 0){
-		move _move = {from, to, pawn, b.turn == WHITE ? en_w : en_b, b.turn};
+	move _move;
+	if(inp[4] != 0 && inp[4] != ' '){//promating move
+		_move = {from, to, pawn, (u8)((strchr(Promoting_str, inp[4]) - Promoting_str) + 2), b.turn};
 		make_move(&b, _move);
-		return b;
 	}
-	if( (piece == KING_W || piece == KING_B) && abs(int(from) % 8 - int(to) % 8) > 1){
-		move _move;
+	else if( (piece == PAWN_W || piece == PAWN_B) && (abs((int)from % 8 - (int)to % 8) > 0) && get_bit(occupied, to) == 0){ //enpass
+		_move = {from, to, pawn, b.turn == WHITE ? en_w : en_b, b.turn};
+		make_move(&b, _move);
+	}
+	else if( (piece == KING_W || piece == KING_B) && abs(int(from) % 8 - int(to) % 8) > 1){ //castle
 		if(to == 58) _move = {from, to, king, long_castle_b, b.turn};
 		if(to == 62) _move = {from, to, king, short_castle_b, b.turn};
 		if(to == 2) _move = {from, to, king, long_castle_w, b.turn};
 		if(to == 6) _move = {from, to, king, short_castle_w, b.turn};
 		make_move(&b, _move);
-		return b;
 	}
-	piece = piece %6;
-	move _move = {from, to, (u8)(piece), only_move, b.turn};
-	make_move(&b, _move);
-	return b;
+	else{
+		piece = piece %6;
+		_move = {from, to, (u8)(piece), only_move, b.turn};
+		make_move(&b, _move);
+	}
+	position r = b;
+	undo_move(&b, _move);
+	return r;
 }
 
 char * find_pv(position b){
@@ -122,7 +123,7 @@ void Uci(){
 				t = strtok(t, " \n");
 				while(t){
 					x = notation_move(x, t);
-					Flags_History_Size -= 4;
+					//Flags_History_Size -= 4;
 					t = strtok(NULL, " \n");
 				}
 			}
@@ -217,7 +218,7 @@ void Uci(){
 		}
 		else if(strcmp(t, "ucinewgame") == 0){
 			x = {};
-			//x.key ^= 1ULL << 8;
+			memset(tt_table, 0, sizeof(tt_table));
 		}
 		else if(strcmp(t, "eval") == 0){
 			t = strtok(NULL, " \n");
@@ -284,4 +285,38 @@ void Uci(){
 		fclose(fptr);
 		//fflush(stdout);
 	}
+}
+
+
+
+void test_case1(){ //checking make move
+
+	init_all();
+	position x;
+	move m1, m2, m3, m4, m5;
+	char fen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+	ApplyFen(&x, fen);
+	m1 = {e1, c1, king, long_castle_w, WHITE}; //castle
+	make_move(&x, m1);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+	m2 = {b4, c3, pawn, only_move, BLACK}; // pawn push
+	make_move(&x, m2);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+	m3 = {e2, a6, bishop, only_move, WHITE}; // capture
+	make_move(&x, m3);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+	m4 = {c7, c5, pawn, only_move, BLACK}; // double push -> produce en_pass
+	make_move(&x, m4);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+	m5 = {d5, c6, pawn, en_w, WHITE}; // take en_pass
+	make_move(&x, m5);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+	
+	undo_move(&x, m5);
+	undo_move(&x, m4);
+	undo_move(&x, m3);
+	undo_move(&x, m2);
+	undo_move(&x, m1);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+
 }

@@ -15,10 +15,13 @@ r1bq1rk1/pp1n1ppp/2pbpn2/3p4/7Q/2NBP3/PPPP1PPP/R1B1K1NR w KQ - 8 8
 }
 */
 
-
+// FIX ZORBIST CAL
 int main(){
-
-
+	//test_case1();
+	
+	//for(int i = 0; i < 64; i++){
+		//PrintBitBoard(Zorbist[5][i]);
+	//}
 	Uci();
 
 

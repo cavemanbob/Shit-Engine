@@ -21,8 +21,7 @@ u64 rand64(){
 	x ^= x << 13;
 	x ^= x >> 7;
 	x ^= x << 17;
-	state = x;
-	return state;
+	return state = x;
 }
 
 int max(std::vector<int> x){
@@ -122,16 +121,6 @@ void ReadableBoard(position b){
 	std::cout << "  A B C D E F G H\n\n";
 }
 
-/*
-u64 hash_position(position *x){
-	u64 key = x->occupied[WHITE] ^ x->occupied[BLACK];
-	std::cout << key << std::endl;
-	for(int i = 0; i < 12; i++){
-		key ^= x->bitboards[i];
-	std::cout << key << std::endl;
-	}
-	return key;
-}*/
 u64 hash_position(position *x){
 	u64 h = x->turn == WHITE ? 0 : Zorbist_Black;
 	u64 occupied = x->occupied[WHITE] | x->occupied[BLACK];
@@ -146,14 +135,12 @@ u64 hash_position(position *x){
 		occupied &= occupied - 1;
 	}
 	h ^= Zorbist[13][x->castling];
-	h ^= Zorbist[14][x->enpass_sq];
-	//h ^= Zorbist[15][x->move_counter % 64];//discard cuz of 3-fold rep
+	if(x->enpass_sq != NO_SQUARE)h ^= Zorbist[14][x->enpass_sq];
 
 	return h;
 }
-inline u64 hash_move_piece(u64 old_hash, u8 piece, u8 from, u8 to, u8 side){
-	if(side != WHITE)
-		old_hash ^= Zorbist_Black;
+inline u64 hash_move_piece(u64 old_hash, u8 piece, u8 from, u8 to, u8 side){// black moves then turn is white
+	old_hash ^= Zorbist_Black;
 	old_hash ^= Zorbist[piece + 6 * (1 - side)][from];
 	old_hash ^= Zorbist[piece + 6 * (1 - side)][to];
 	return old_hash;
@@ -234,6 +221,9 @@ void ApplyFen(position *b, char *fen){
 				//std::cout << "GEPS " << sq << std::endl;
 				b->enpass_sq = sq;
 			}
+			else{
+				b->enpass_sq = NO_SQUARE;
+			}
 			space++;
 		}
 		else if(space == 4){
@@ -274,4 +264,20 @@ void print_position_bitboards(position *b){
 	PrintBitBoard(b->occupied[1]);
 	std::cout << "WHITE\n";
 	for(int i = 0; i < 12; i++){PrintBitBoard(b->bitboards[i]);std::cout << i << std::endl;}
+}
+
+
+
+int cmp_positions(position *a, position *b){
+	if(a->occupied[WHITE] != b->occupied[WHITE]) return 0;
+	if(a->occupied[BLACK] != b->occupied[BLACK]) return 0;
+
+	for(int i = 0; i < 12; i++)
+		if(a->bitboards[i] != b->bitboards[i]) return 0;
+	if(a->enpass_sq != b->enpass_sq) return 0;
+	if(a->castling != b->castling) return 0;
+
+	return 1;
+
+
 }
