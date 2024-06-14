@@ -194,10 +194,10 @@ void Uci(){
 			}
 			else if(t){
 				ApplyFen(&x, t);
-				x.captured_piece = 1;
-				int eval_q = ((x.turn == WHITE) ? -1 : +1)  * Quiesce(&x, MIN_SCORE, MAX_SCORE, 0);
+				//x.captured_piece = 1;
+				//int eval_q = ((x.turn == WHITE) ? -1 : +1)  * Quiesce(&x, MIN_SCORE, MAX_SCORE, 0);
 				std::cout << "value " << Evaluate(&x) << std::endl;
-				std::cout << "q_search " << eval_q << std::endl;
+				//std::cout << "q_search " << eval_q << std::endl;
 			}
 			else{
 				std::cout << "value " << Evaluate(&x) << std::endl;

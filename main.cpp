@@ -22,6 +22,21 @@ int main(){
 	//for(int i = 0; i < 64; i++){
 		//PrintBitBoard(Zorbist[5][i]);1k1r1b1r/1ppbqp1p/4p3/Q2P3p/4B3/4PN2/PP1BKPPP/R6R w - - 0 19
 	//}
+/*	init_all();
+	printf("WHITE\n");
+	for(int i = 7; i >= 0; i--){
+		for(int j = 0; j < 8; j++){
+			printf("%4d ", eg_table[pawn][i * 8 + j]);
+		}
+		printf("\n");
+	}
+	printf("BLACK\n");
+	for(int i = 7; i >= 0; i--){
+		for(int j = 0; j < 8; j++){
+			printf("%4d ", eg_table[pawn + 6][i * 8 + j]);
+		}
+		printf("\n");
+	}*/
 	Uci();
 
 

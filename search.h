@@ -9,7 +9,7 @@ int tri_fold_rep(position *b){
 	return 0;
 }
 
-
+/*
 
 int Quiesce(position *b, int alpha, int beta, int PLY) {
 	//const u8 PLY = Global_depth - depth;
@@ -37,17 +37,12 @@ int Quiesce(position *b, int alpha, int beta, int PLY) {
 			alpha = score;
 	}
 	return alpha;
-}
+}*/
 
 
 int negamax(position *b, u8 depth, int alpha, int beta){
 	const u8 PLY = Global_depth - depth;
 	Node_Total++;
-	if(b->fifty_move == 99) return 0;//check it	
-	// reputation
-	if(tri_fold_rep(b) == 1 && alpha <= 0){
-		return 0;
-	}
 	
 	//tt things
 	int base_alpha = alpha;
@@ -79,26 +74,20 @@ int negamax(position *b, u8 depth, int alpha, int beta){
 	move_order(b, &l);
 	int val = MIN_SCORE + 1000 * PLY; // -200k
 
-	//stealmate	
-	if(l.size == 0){
-		if(is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0){
-			return 0;
-		}
-		return val;
+	if(tri_fold_rep(b) || b->fifty_move >= 99 || (l.size == 0 && is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0)  ){
+		return 0;
+		//val = 0;
+		//l.size = 0; //pass the moves
 	}
 	
 	//each move
 	for(int i = 0; i < l.size; i++){
-		if(l.moves[i].from == l.moves[i].to) {printf("empty move tried search \n");assert(0);}
+		//if(l.moves[i].from == l.moves[i].to) {printf("empty move tried search \n");assert(0);} // check point
 		make_move(b, l.moves[i]);
 		int did_captured = b->captured_piece;
 		
-
 		val = std::max(val, -negamax(b, depth - 1, -beta, -alpha));
-
-		
 	
-		
 		undo_move(b, l.moves[i]);
 
 		//alpha-beta things
@@ -112,6 +101,8 @@ int negamax(position *b, u8 depth, int alpha, int beta){
 		}
 
 	}
+
+
 	entry->val = val;
 	if (val <= base_alpha){
 		entry->flag = UPPER_BOUND;
@@ -122,5 +113,8 @@ int negamax(position *b, u8 depth, int alpha, int beta){
 		entry->flag = EXACT;
 	entry->depth = depth;
 	entry->hash = b->hash;
+	//Note: add best move id !
+	
+	
 	return val;
 }

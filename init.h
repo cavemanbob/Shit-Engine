@@ -231,10 +231,10 @@ inline u64 GetBishopWay(u64 b, int square){
 void Init_pestos(){
 	for(int sq=0; sq < 64; sq++){ // sq = square
 		for(int p = 0; p < 6; p++){ // p = piece
-			mg_table[p][sq] = mg_value[p] + mg_pesto_table[p][sq];
-			eg_table[p][sq] = eg_value[p] + eg_pesto_table[p][sq];
-			mg_table[p + 6][sq] = mg_value[p] + mg_pesto_table[p][FLIP(sq)];
-			eg_table[p + 6][sq] = eg_value[p] + eg_pesto_table[p][FLIP(sq)];
+			mg_table[p + 6]    [sq] = mg_value[p] + mg_pesto_table[p][sq];
+			eg_table[p + 6]    [sq] = eg_value[p] + eg_pesto_table[p][sq];
+			mg_table[p][sq] = mg_value[p] + mg_pesto_table[p][FLIP(sq)];
+			eg_table[p][sq] = eg_value[p] + eg_pesto_table[p][FLIP(sq)];
 		}
 	}
 }
