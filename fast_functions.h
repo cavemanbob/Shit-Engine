@@ -276,7 +276,7 @@ int cmp_positions(position *a, position *b){
 		if(a->bitboards[i] != b->bitboards[i]) return 0;
 	if(a->enpass_sq != b->enpass_sq) return 0;
 	if(a->castling != b->castling) return 0;
-
+	if(a->turn != b->turn) return 0;
 	return 1;
 
 

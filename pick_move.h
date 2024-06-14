@@ -23,19 +23,16 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 	int val = MIN_SCORE;
 	int alp = MIN_SCORE;
 	
-	move *PV_list[m.size];
 
 	//find first moves values
 	
 	for(int i=0; i < m.size; i++){
-		PV_list[i] = (move *)calloc(64, sizeof(move));
 		make_move(&b, m.moves[i]);
 		//printf("\n %s", move_to_str(m.moves[i]));
-		alp = -negamax(&b, depth - 1, MIN_SCORE, MAX_SCORE, PV_list[i]);
+		alp = -negamax(&b, depth - 1, MIN_SCORE, MAX_SCORE);
 		undo_move(&b, m.moves[i]);
 		scored_move _move = {m.moves[i], alp};
 		scored_moves.push_back(_move);
-		PV_list[i][0] = m.moves[i];
 		if(val < alp){
 			val = alp;
 		}
@@ -47,7 +44,6 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 		for(int i = 0; i < scored_moves.size() - 1; i++){
 			if( (scored_moves[i].val < scored_moves[i+1].val)){
 				Swap_scored_move(&scored_moves[i], &scored_moves[i+1]);
-				swap_pv(&PV_list[i], &PV_list[i+1]);
 				swapped = 1;
 			}
 		}
@@ -59,15 +55,6 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 	u8 pick_index = rand() % max_val_size;
 	scored_move picked_move = scored_moves[pick_index];
 	
-	//
-	for(int i = 0; i < 64; i++){
-		g_PV[i] = PV_list[pick_index][i];
-	}
-	//g_PV[0] = picked_move.move;
-	//clean PV_list
-	for(int i = 0;i < m.size; i++){
-		free(PV_list[i]);
-	}
 
 	//for(int i =0; i < scored_moves.size(); i++){
 		//printf("%s %d \n", move_to_str(scored_moves[i].move), scored_moves[i].val);

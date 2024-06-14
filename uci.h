@@ -56,35 +56,6 @@ position notation_move(position b, char *inp){
 	return r;
 }
 
-char * find_pv(position b){
-	char *pv_str =(char *)malloc(256 * sizeof(char));
-	//ReadableBoard(b);	
-	while(1){
-		int find = 0;
-		moves m;
-		movegen(&m, &b);
-		for(int i =0; i < m.size; i++){
-			make_move(&b, m.moves[i]);
-			const u64 pos_hash = hash_position(&b);
-			//ReadableBoard(b);
-			printf("in hash: %x\n", pos_hash);
-			//ReadableBoard(b);
-			undo_move(&b, m.moves[i]);
-			//std::cout << pos_hash << std::endl;
-			if(pos_hash == Game_History[b.move_counter]){
-				make_move(&b, m.moves[i]);
-				//ReadableBoard(b);
-				//printf("x %s",ctos(m.moves[i].from).c_str() );
-				//sprintf(pv_str + strlen(pv_str), "%s%s%c ", ctos(m.moves[i].from).c_str(), ctos(m.moves[i].to).c_str(),
-						//((m.moves[i].move_type > 1 && 7 > m.moves[i].move_type) ? Promoting_str[m.moves[i].move_type - 2] : ' '));
-				find = 1;
-				break;
-			}
-		}
-		if(find == 0) break;
-	}
-	return pv_str;
-}
 
 
 
@@ -114,6 +85,8 @@ void Uci(){
 		}
 		else if(strcmp(t, "position") == 0){
 			memset(Game_History, 0, sizeof(u64) * 512);
+			Hash_flag_history_size = 0;
+			Flags_History_Size = 0;
 			Game_History_size = 0;
 			t = strtok(NULL, "\n"); // get all str
 			ApplyFen(&x, t);
@@ -166,7 +139,6 @@ void Uci(){
 				else if(isdigit(*t) == 1){
 					_depth = std::stoi(t);
 				}
-			//if(Did_Next == 0)if(_game.wtime < 30000 || _game.btime < 30000) x = Next(x, SEARCH_DEPTH_LOW_TIME); else x = Next(x, SEARCH_DEPTH_LONG_TIME);
 				t = strtok(NULL, " \n");
 			}
 			//time control
@@ -187,16 +159,11 @@ void Uci(){
 			clock_t ct = clock();
 			std::cout << "info depth " << _depth << std::endl;
 			scored_move Picked_move = Next(x, _depth);
-			make_move(&x, Picked_move.move);
+			make_move(&x, Picked_move.move); //upgrades FLAGS !!
 			
 			std::cout << "info string val = " << Picked_move.val << std::endl;
 			std::cout << "info nodes " << Node_Total << std::endl;
 			std::cout << "bestmove " << move_to_str(Picked_move.move) << std::endl;
-			/* pv line
-			for(int i = 1; i < 64; i++){
-				printf(" %s", move_to_str(g_PV[i]));
-				if(g_PV[i].from == g_PV[i].to) break;
-			}*/
 			ct = clock() - ct;
 			printf("info string %4lf sec  hash: %x \n", (double)ct/CLOCKS_PER_SEC, hash_position(&x));
 			//std::cout << left << "  " << right << std::endl;
@@ -218,7 +185,7 @@ void Uci(){
 		}
 		else if(strcmp(t, "ucinewgame") == 0){
 			x = {};
-			memset(tt_table, 0, sizeof(tt_table));
+			memset(tt, 0, sizeof(tt));
 		}
 		else if(strcmp(t, "eval") == 0){
 			t = strtok(NULL, " \n");
@@ -254,7 +221,7 @@ void Uci(){
 					make_move(&x, m.moves[i]);
 					u64 Current_Perft = perft(&x, std::stoi(t) - 1);
 					undo_move(&x, m.moves[i]);
-					std::cout << move_to_str(m.moves[i]) << " " << Current_Perft;
+					std::cout << move_to_str(m.moves[i]) << " " << Current_Perft << std::endl;
 					move_count += Current_Perft;
 				}
 				std::cout << "depth " << std::stoi(t) << " total " << move_count << std::endl;
@@ -318,5 +285,27 @@ void test_case1(){ //checking make move
 	undo_move(&x, m2);
 	undo_move(&x, m1);
 	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+
+
+	char fen2[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1";
+	ApplyFen(&x, fen2);
+
+	move m21 = {e8, c8, king, long_castle_b, BLACK}; //castle
+	make_move(&x, m21);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+	move m22 = {e5, f7, knight, only_move, WHITE}; //castle
+	make_move(&x, m22);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+	move m23 = {e7, f7, queen, only_move, BLACK}; //castle
+	make_move(&x, m23);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+	move m24 = {a2, a4, pawn, only_move, WHITE}; //castle
+	make_move(&x, m24);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+	move m25 = {b4, a3, pawn, en_b, BLACK}; //castle
+	make_move(&x, m25);
+	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
+
+
 
 }

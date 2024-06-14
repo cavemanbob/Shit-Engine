@@ -40,13 +40,31 @@ int Quiesce(position *b, int alpha, int beta, int PLY) {
 }
 
 
-int negamax(position *b, u8 depth, int alpha, int beta, move *PV){
+int negamax(position *b, u8 depth, int alpha, int beta){
 	const u8 PLY = Global_depth - depth;
 	Node_Total++;
 	if(b->fifty_move == 99) return 0;//check it	
 	// reputation
 	if(tri_fold_rep(b) == 1 && alpha <= 0){
 		return 0;
+	}
+	
+	//tt things
+	int base_alpha = alpha;
+	tt_entry *entry = get_tt_entry(b->hash);
+	if(entry->hash == b->hash && entry->depth >= depth){
+		if(entry->flag == EXACT){
+			return entry->val;
+		}
+		else if(entry->flag == LOWER_BOUND){
+			alpha = max(alpha, entry->val);
+		}
+		else if(entry->flag == UPPER_BOUND){
+			beta = min(beta, entry->val);
+		}
+		if(alpha >= beta){
+			return entry->val;
+		}
 	}
 
 	if(depth <= 0){
@@ -62,31 +80,25 @@ int negamax(position *b, u8 depth, int alpha, int beta, move *PV){
 	int val = MIN_SCORE + 1000 * PLY; // -200k
 
 	//stealmate	
-	if(l.size == 0 && is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0) return 0;
+	if(l.size == 0){
+		if(is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0){
+			return 0;
+		}
+		return val;
+	}
 	
 	//each move
 	for(int i = 0; i < l.size; i++){
 		if(l.moves[i].from == l.moves[i].to) {printf("empty move tried search \n");assert(0);}
 		make_move(b, l.moves[i]);
 		int did_captured = b->captured_piece;
-		push_PV(l.moves[i]); //fixed size stack
 		
-		//check tt if there are no tt then search it;
-		tt *tt_l = get_tt(b->hash);
 
-		if(tt_l != NULL && tt_l->depth >= depth){
-			val = tt_l->val;
-		}
-		else{
-			 //no tt
-			val = std::max(val, -negamax(b, depth - 1, -beta, -alpha, PV));
-			set_tt(b->hash, val, depth);
-		}
+		val = std::max(val, -negamax(b, depth - 1, -beta, -alpha));
 
 		
 	
 		
-		pop_PV();
 		undo_move(b, l.moves[i]);
 
 		//alpha-beta things
@@ -100,6 +112,15 @@ int negamax(position *b, u8 depth, int alpha, int beta, move *PV){
 		}
 
 	}
-	
+	entry->val = val;
+	if (val <= base_alpha){
+		entry->flag = UPPER_BOUND;
+	}
+	else if(val >= beta)
+		entry->flag = LOWER_BOUND;
+	else
+		entry->flag = EXACT;
+	entry->depth = depth;
+	entry->hash = b->hash;
 	return val;
 }

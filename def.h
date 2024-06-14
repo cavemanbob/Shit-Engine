@@ -163,10 +163,10 @@ u64 pop_position(){
 	return Game_History[--Game_History_size];
 }
 
-u8 Flags_History[512 * 8] = {};
+u8 Flags_History[512 * 4] = {};
 u16 Flags_History_Size = 0;
 void push_flag(u8 _flag){
-	if(Flags_History_Size == 511){
+	if(Flags_History_Size == 512 * 4 - 1){
 		printf("\nFlag capacity is full, push is not possible!\n");
 		assert(0);
 	}
@@ -180,24 +180,8 @@ u8 pop_flag(){
 	return Flags_History[--Flags_History_Size];
 }
 
-move PV_stack[256];
-u8 PV_stack_size = 0;
-void push_PV(move _move){
-	if(PV_stack_size == 256){
-		printf("\nPV_stack capacity is full, push is not possible!\n");
-		assert(0);
-	}
-	PV_stack[PV_stack_size++] = _move;
-}
-move pop_PV(){
-	if(PV_stack_size == 0){
-		printf("\nPV_stack Size is 0, pop is not possible!\n");
-		assert(0);
-	}
-	return PV_stack[--PV_stack_size];
-}
 
-u64 Hash_flag_history[256] = {};
+u64 Hash_flag_history[512] = {};
 u16 Hash_flag_history_size = 0;
 void push_hash_flag(u64 hash){
 	if(Hash_flag_history_size == 511){

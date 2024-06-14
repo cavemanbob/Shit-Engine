@@ -1,26 +1,28 @@
-struct tt{
+#define EXACT 1
+#define LOWER_BOUND 2
+#define UPPER_BOUND 3
+struct tt_entry{
 	u64 hash;
 	int val;
 	u8 depth;
+	u8 flag; //
 };
-typedef struct tt tt;
+typedef struct tt_entry tt_entry;
 
-const u64 tt_table_size = 1024 * 1024;
-tt tt_table[tt_table_size];
+const u64 tt_size = 1024 * 1024;
+tt_entry tt[tt_size];
 
 
-tt* get_tt(u64 hash){
-	if( tt_table[hash % tt_table_size].hash == hash ){	
-		return &tt_table[hash % tt_table_size];
-	}
-	return NULL;
+inline tt_entry* get_tt_entry(u64 hash){
+	return &tt[hash % tt_size];
 }
 
-void set_tt(u64 hash, int val, u8 depth){
-	const int id = hash % tt_table_size;
-	tt_table[id].hash = hash;
-	tt_table[id].val = val;
-	tt_table[id].depth = depth;
+tt_entry* set_tt_entry(u64 hash, int val, u8 depth){
+	const int id = hash % tt_size;
+	tt[id].hash = hash;
+	tt[id].val = val;
+	tt[id].depth = depth;
+	return &tt[id];
 }
 
 
