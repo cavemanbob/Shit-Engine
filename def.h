@@ -39,6 +39,9 @@ struct position{
 	u8 captured_piece;
 	
 	u64 hash;
+
+	u64 history[512];
+	u16 history_size;
 };
 
 #define NO_SQUARE 65
@@ -146,21 +149,22 @@ inline void moves_add(moves *source, move move){
 	source->moves[source->size++] = move;
 }
 
-u64 Game_History[512] = {};
-u64 Game_History_size = 0ULL;
-void push_position(u64 hash){
-	if(Game_History_size == 511){
-		printf("\nposition_stack capacity is full, push is not possible!\n");
+
+
+inline void push_history(position *b, u64 hash){
+	if(b->history_size == 511){
+		printf("\nposition history capacity is full, push is not possible!\n");
 		assert(0);
 	}
-	Game_History[Game_History_size++] = hash;
+	b->history[b->history_size++] = hash;
 }
-u64 pop_position(){
-	if(Game_History_size == 0){
-		printf("\nposition_stack Size is 0, pop is not possible!\n");
+inline u64 pop_history(position *b){
+	if(b->history_size == 0){
+		printf("\nposition history size is 0, pop is not possible!\n");
 		assert(0);
 	}
-	return Game_History[--Game_History_size];
+	b->history[b->history_size] = 0; //less performance more safe check this out
+	return b->history[--b->history_size];
 }
 
 u8 Flags_History[512 * 4] = {};

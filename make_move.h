@@ -124,7 +124,7 @@ void make_move(position *b, move _move){
 		b->enpass_sq = NO_SQUARE;
 	}
 
-	if(b->captured_piece == NO_CAPTURE_FLAG && move_type == only_move && moved_piece != pawn){
+	if(b->captured_piece == NO_CAPTURE_FLAG && move_type == only_move && moved_piece != pawn){ //does castle fifty ?
 		b->fifty_move++;
 	}
 	else{
@@ -139,14 +139,14 @@ void make_move(position *b, move _move){
 		b->hash ^= Zorbist[13][b->castling];
 	}
 
-	push_position(b->hash);
+	push_history(b, b->hash);
 }
 
 // ################################
 
 
 void undo_move(position *b, move _move){
-	pop_position();
+	pop_history(b);
 
 	
 

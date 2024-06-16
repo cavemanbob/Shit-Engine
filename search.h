@@ -1,15 +1,23 @@
 int tri_fold_rep(position *b){
-	int fold_count = 1;
-	for(int i = 2; i <= b->fifty_move; i+=2){
-		if(Game_History[b->move_counter - i] == b->hash){
+	int fold_count = 0;
+	for(int i = 4; i <= b->fifty_move && i <= b->history_size; i+=2){
+		if(b->history[b->history_size - i - 1] == b->hash){
 			fold_count++;
-			if(fold_count == 3) return 1;
+			if(fold_count == 2) return 1;
 		}
 	}
 	return 0;
 }
+//best i - 1 but still testable
+// - (1 - b->turn) equal TEST  WHITE 27 - 34 BLACK 25 - 39
+// - b->turn good white terrible black
+// - 1 good white bad black TEST WHITE 131 - 107  BLACK 90 - 164 + tt
+// - (1 + b->turn) + tt TEST WHITE 27 - 25  BLACK 20 - 41
+// - 0  bad both
 
-/*
+// i - 1 + tt -> WHITE 34 - 36 BLACK 30 - 41
+// i - 1      -> WHITE 23 - 16 BLACK 21 - 21 // WHITE 53 - 38 BLACK 41 - 49
+// no tt + deleted fifty || stealmate -> WHITE 35 - 55 BLACK 25 - 69
 
 int Quiesce(position *b, int alpha, int beta, int PLY) {
 	//const u8 PLY = Global_depth - depth;
@@ -20,8 +28,8 @@ int Quiesce(position *b, int alpha, int beta, int PLY) {
 	if( alpha < stand_pat )
 		alpha = stand_pat;
 	//if(b->move_counter - Move_Counter > 6)
-	if(PLY > 6)
-		return stand_pat;
+	//if(PLY > 6)
+		//return stand_pat;
 	moves  m;
 	movegen(&m, b);
 	//if(m.size == 0) return MIN_SCORE; //checkmate or stealmate check
@@ -37,7 +45,7 @@ int Quiesce(position *b, int alpha, int beta, int PLY) {
 			alpha = score;
 	}
 	return alpha;
-}*/
+}
 
 
 int negamax(position *b, u8 depth, int alpha, int beta){
@@ -62,9 +70,9 @@ int negamax(position *b, u8 depth, int alpha, int beta){
 		}
 	}
 
-	if(depth <= 0){
+	if(depth == 0){
 		//if(b->captured_piece != NO_CAPTURE_FLAG){
-			//return Quiesce(b, alpha, beta, 0);
+			//return -Quiesce(b, -beta, -alpha, 0);
 		//}
 		return ((b->turn == WHITE) ? 1 : -1)  * Evaluate(b);
 	}
@@ -74,10 +82,13 @@ int negamax(position *b, u8 depth, int alpha, int beta){
 	move_order(b, &l);
 	int val = MIN_SCORE + 1000 * PLY; // -200k
 
-	if(tri_fold_rep(b) || b->fifty_move >= 99 || (l.size == 0 && is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0)  ){
+	// only fifty -> WHITE 31 39 - BLACK 23 71
+	// zero thing -> WHITE 15 23 - BLACK 12 36
+	// zero thing -> WHITE 54 59 - BLACK 37 112
+	
+	//stealmate - fifty_move - three_fold
+	if(b->fifty_move >= 99 || (l.size == 0 && is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0) || tri_fold_rep(b)){
 		return 0;
-		//val = 0;
-		//l.size = 0; //pass the moves
 	}
 	
 	//each move
@@ -91,12 +102,10 @@ int negamax(position *b, u8 depth, int alpha, int beta){
 		undo_move(b, l.moves[i]);
 
 		//alpha-beta things
-		if(val > alpha){
-			alpha = val;
-		}
+		alpha = max(alpha, val);
 		if (alpha >= beta){
-			//if(did_captured != NO_SQUARE)
-				//insert_killer(l.moves[i], b->move_counter);
+			if(did_captured != NO_SQUARE)
+				insert_killer(l.moves[i], b->move_counter);
 			break;
 		}
 

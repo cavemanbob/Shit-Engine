@@ -148,13 +148,6 @@ inline u64 hash_move_piece(u64 old_hash, u8 piece, u8 from, u8 to, u8 side){// b
 
 
 
-int Check_Three_Fold(u64 new_hash){
-	int k = 0;
-	for(int i = 0; i < Game_History_size; i++){
-		if(Game_History[i] == new_hash) k++;
-	}
-	return (k>=2) ? 1 : 0;
-}
 
 
 
@@ -162,7 +155,7 @@ void ApplyFen(position *b, char *fen){
 	*b = {};
 	//game_history = {};
 	//for(int i = 0; i < Game_History_size; i++) Game_History[i] = 0;
-	Game_History_size = 0;
+	b->history_size = 0;
 
 	if(strncmp(fen, "startpos", 8) == 0) {fen = START_FEN;Flags_History_Size = 0;}
 	char pieces[] = "RNBQKPrnbqkp";

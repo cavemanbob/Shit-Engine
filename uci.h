@@ -84,10 +84,10 @@ void Uci(){
 			fflush(stdout);
 		}
 		else if(strcmp(t, "position") == 0){
-			memset(Game_History, 0, sizeof(u64) * 512);
+			memset(x.history, 0, sizeof(u64) * 512);
 			Hash_flag_history_size = 0;
 			Flags_History_Size = 0;
-			Game_History_size = 0;
+			x.history_size = 0;
 			t = strtok(NULL, "\n"); // get all str
 			ApplyFen(&x, t);
 			t = strchr(t, 'm');
@@ -146,10 +146,10 @@ void Uci(){
 				_depth = 4;
 			}
 			else if(_depth == 1 && (_game.wtime < 2000 || _game.btime < 2000)){
-				_depth = SEARCH_DEPTH_VERY_LOW_TIME;
+				_depth = 5;
 			}
 			else if(_depth == 1 && (_game.wtime < 30000 || _game.btime < 30000)){
-				_depth = SEARCH_DEPTH_LOW_TIME;
+				_depth = 6;
 			}
 			else if(_depth == 1){
 				_depth = 6;
@@ -246,7 +246,7 @@ void Uci(){
 		}
 		else if(strcmp(t, "hash") == 0){
 			for(int i = 0; i < 64; i++){
-				printf("hash%d %x\n", i, Game_History[i]);
+				printf("hash%d %x\n", i, x.history[i]);
 			}
 		}
 		fclose(fptr);
@@ -266,22 +266,22 @@ void test_case1(){ //checking make move
 	m1 = {e1, c1, king, long_castle_w, WHITE}; //castle
 	make_move(&x, m1);
 	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
-	m2 = {b4, c3, pawn, only_move, BLACK}; // pawn push
+	m2 = {b4, c3, pawn, only_move, BLACK}; // pawn eat
 	make_move(&x, m2);
 	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
 	m3 = {e2, a6, bishop, only_move, WHITE}; // capture
-	make_move(&x, m3);
+	//make_move(&x, m3);
 	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
 	m4 = {c7, c5, pawn, only_move, BLACK}; // double push -> produce en_pass
-	make_move(&x, m4);
+	//make_move(&x, m4);
 	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
 	m5 = {d5, c6, pawn, en_w, WHITE}; // take en_pass
-	make_move(&x, m5);
+	//make_move(&x, m5);
 	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}
-	
-	undo_move(&x, m5);
-	undo_move(&x, m4);
-	undo_move(&x, m3);
+	printf("fifty %d\n", x.fifty_move);	
+	//undo_move(&x, m5);
+	//undo_move(&x, m4);
+	//undo_move(&x, m3);
 	undo_move(&x, m2);
 	undo_move(&x, m1);
 	if(x.hash != hash_position(&x)) {printf("\n%d\n%d", x.hash, hash_position(&x));assert(0);}

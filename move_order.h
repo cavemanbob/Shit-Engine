@@ -63,7 +63,7 @@ void move_order(position *b, moves *x){
 		i++;
 	}
 	//killer moves search
-/*	int killer_l = capture_end;
+	int killer_l = capture_end;
 	for(i = capture_end; i < x->size; i++){
 		for(int j = 0; j < KILLER_SIZE && killer_l < x->size; j++){
 			if(cmp_moves(killer_moves[b->move_counter][j], x->moves[i])){
@@ -72,7 +72,7 @@ void move_order(position *b, moves *x){
 			}
 		}
 	}
-	*/
+	
 	//printf("killer_size %d\n", killer_l - capture_end);
 	//_sleep(300);
 
