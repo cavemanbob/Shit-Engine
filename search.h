@@ -8,6 +8,9 @@ int tri_fold_rep(position *b){
 	}
 	return 0;
 }
+// BEST WHITE - i - b->turn   -> i - 1
+// BEST BLACK - i - (1 - b->turn)  -> i - 1
+
 //best i - 1 but still testable
 // - (1 - b->turn) equal TEST  WHITE 27 - 34 BLACK 25 - 39
 // - b->turn good white terrible black
@@ -53,7 +56,7 @@ int negamax(position *b, u8 depth, int alpha, int beta){
 	Node_Total++;
 	
 	//tt things
-	int base_alpha = alpha;
+	const int base_alpha = alpha;
 	tt_entry *entry = get_tt_entry(b->hash);
 	if(entry->hash == b->hash && entry->depth >= depth){
 		if(entry->flag == EXACT){
@@ -68,41 +71,60 @@ int negamax(position *b, u8 depth, int alpha, int beta){
 		if(alpha >= beta){
 			return entry->val;
 		}
+		Best_move_id = entry->best_move;
+	}
+	else{
+		Best_move_id = -1;
 	}
 
 	if(depth == 0){
 		//if(b->captured_piece != NO_CAPTURE_FLAG){
 			//return -Quiesce(b, -beta, -alpha, 0);
 		//}
-		return ((b->turn == WHITE) ? 1 : -1)  * Evaluate(b);
+		return ((b->turn == WHITE) ? 1 : -1)  * Evaluate(b); // classic
+		//return ((b->turn == WHITE) ? 1 : -1)  * eval_nn(b);
 	}
 	
 	moves l;
 	movegen(&l, b);
-	move_order(b, &l);
 	int val = MIN_SCORE + 1000 * PLY; // -200k
 
-	// only fifty -> WHITE 31 39 - BLACK 23 71
-	// zero thing -> WHITE 15 23 - BLACK 12 36
-	// zero thing -> WHITE 54 59 - BLACK 37 112
 	
-	//stealmate - fifty_move - three_fold
-	if(b->fifty_move >= 99 || (l.size == 0 && is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0) || tri_fold_rep(b)){
+	//stealmate - fifty_move - three_fold - mate detection
+	if(b->fifty_move >= 99 || 
+			(l.size == 0 && is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0) || tri_fold_rep(b)){
 		return 0;
 	}
+	if(l.size == 0) return val;
+	
+	// move_order
+	move_order(b, &l);
+	
+	if(Best_move_id != -1){
+		swap_moves(&l.moves[Best_move_id], &l.moves[0]);
+	}
+
+	int new_best_move = 0;
 	
 	//each move
 	for(int i = 0; i < l.size; i++){
 		//if(l.moves[i].from == l.moves[i].to) {printf("empty move tried search \n");assert(0);} // check point
+		u64 new_hash = next_hash(b, b->hash, l.moves[i]);
 		make_move(b, l.moves[i]);
+		if(new_hash != b->hash) assert(0);
+		
 		int did_captured = b->captured_piece;
 		
-		val = std::max(val, -negamax(b, depth - 1, -beta, -alpha));
+		val = max(val, -negamax(b, depth - 1, -beta, -alpha));
 	
 		undo_move(b, l.moves[i]);
 
 		//alpha-beta things
-		alpha = max(alpha, val);
+		//alpha = max(alpha, val);
+		if(val > alpha){
+			alpha = val;
+			new_best_move = i;
+		}
 		if (alpha >= beta){
 			if(did_captured != NO_SQUARE)
 				insert_killer(l.moves[i], b->move_counter);
@@ -122,8 +144,84 @@ int negamax(position *b, u8 depth, int alpha, int beta){
 		entry->flag = EXACT;
 	entry->depth = depth;
 	entry->hash = b->hash;
+	entry->best_move = new_best_move;
 	//Note: add best move id !
 	
 	
 	return val;
 }
+
+/*
+
+struct i_search{
+	int val;
+	u8 did_end;
+};
+typedef struct i_search i_search;
+
+i_search iterative_search(position *b, clock_t s_time, int m_time){ // start_time, max_time
+	int depth = 4;
+
+	moves l;
+	movegen(&l, b);
+	if(b->fifty_move >= 99 || (l.size == 0 && is_square_attacked(b, lsb(b->bitboards[king + 6 *  (1 - b->turn)]), b->turn) == 0) || tri_fold_rep(b))
+		return 0;
+	if(l.size == 0) return MIN_SCORE; //add depth based 
+	move_order(b, &l);
+
+	int val1 = MIN_SCORE;
+	int c_val = MIN_SCORE;
+	int i1 = 0;
+	int i;
+	for(i = 0; i < l.size; i++){
+		if( (int)(clock() - s_time) >= m_time){
+			break;
+		}
+		make_move(b, l.moves[i]);
+		c_val = -negamax(b, depth, MIN_SCORE, MAX_SCORE);
+		undo_move(b, l.moves[i]);
+		if(c_val > val1){
+			val1 = c_val;
+			i1 = i;
+		}
+	}
+
+	i_search k;
+	if( i != l.size){
+		k.did_end = 0;
+		return k;
+	}
+	else{
+		k.val = -val1;
+		k.did_end = 1;
+	}
+
+
+	val1 = MIN_SCORE;
+	i_search c_search;
+	i1 = 0;
+	for(i = 0; i < l.size; i++){
+		if( (int)(clock() - s_time) >= m_time){
+			break;
+		}
+	printf("x%d\n", i);
+		make_move(b, l.moves[i]);
+		c_search = iterative_search(b, s_time, m_time);
+		undo_move(b, l.moves[i]);
+		if(c_search.did_end = 0) break;
+		if(c_search.val > val1){
+			val1 = c_search.val;
+			i1 = i;
+		}
+	}
+	if( i != l.size){
+		return k;
+	}
+	else{
+		printf("m %d  %d\n",i, l.size);
+		k.val = -val1;
+		k.did_end = 1;
+		return k;
+	}
+
+}*/

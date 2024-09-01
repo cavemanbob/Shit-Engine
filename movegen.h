@@ -1,7 +1,7 @@
 
 
 
-inline int is_square_attacked(position *b, u8 sqi, u8 side){ //defender side
+ int is_square_attacked(position *b, u8 sqi, u8 side){ //defender side
 	const u64 sq = 1ULL << sqi;
 	const u8 piece_buffer = (side == WHITE) ? 6 : 0;
 	const u64 occupied = b->occupied[WHITE] | b->occupied[BLACK];
@@ -22,7 +22,7 @@ inline int is_square_attacked(position *b, u8 sqi, u8 side){ //defender side
 	
 	return 0;
 }
-inline int square_attacked_times(position *b, u8 sqi, u8 side){ //defender side
+ int square_attacked_times(position *b, u8 sqi, u8 side){ //defender side
 	const u64 sq = 1ULL << sqi;
 	const int piece_buffer = side == WHITE ? 6 : 0;
 	const u64 occupied = b->occupied[WHITE] | b->occupied[BLACK];
@@ -57,7 +57,9 @@ void movegen(moves *r, position *b){
 	const int eps_buffer = (side == WHITE) ? 8 : -8;
 	//position enpass_pos;
 	//if(eps != NO_SQUARE)enpass_pos = b;
-	*r = {};
+	//*r = {};
+	memset(r, 0, sizeof(moves));
+
 	const u64 empty = ~(b->occupied[WHITE] | b->occupied[BLACK]);
 	const u64 emptyW = ~b->occupied[WHITE];
 	const u64 emptyB = ~b->occupied[BLACK];
