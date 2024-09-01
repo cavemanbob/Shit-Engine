@@ -1,4 +1,4 @@
-/*inline bool BitCheck(u64 x, int s){
+/*  bool BitCheck(u64 x, int s){
 	return 1ULL << s & x;
 }*/
 #define set_bit(bitboard, square) ((bitboard) |= (1ULL << (square)))
@@ -8,11 +8,11 @@
 		  ((bitboard) ^= 1ULL << (source) | 1ULL << (destination))
 
 
-inline u8 bit_count(u64 x){
+u8 bit_count(u64 x){
 	return __builtin_popcountll(x);
 }
 
-inline u8 lsb(u64 x){
+u8 lsb(u64 x){
 		return __builtin_ctzll(x);
 }
 
@@ -24,34 +24,17 @@ u64 rand64(){
 	return state = x;
 }
 
-int max(std::vector<int> x){
-	if(x.size() == 0) return -1;
-	int max = x[0];
-	for(int i=1; i < x.size(); i++){
-		if(max < x[i]) max = x[i];
-	}
-	return max;
-}
 
-int min(std::vector<int> x){
-	if(x.size() == 0) return -1;
-	int min = x[0];
-	for(int i=1; i < x.size(); i++){
-		if(min > x[i]) min = x[i];
-	}
-	return min;
-}
-
-inline int max(int a, int b){
+  int max(int a, int b){
 	return a > b ? a : b;
 }
 
-inline int min(int a, int b){
+  int min(int a, int b){
 	return a < b ? a : b;
 }
-
+/*
 template <directions D>
-inline bool shift(u64 b){
+  bool shift(u64 b){
 	u64 afilemask = 0x8080808080808080, hfilemask = 0x1010101010101010, rank1mask = 0xFF;
 	if(D == RIGHT){
 		return b >> 1 & ~afilemask;
@@ -66,7 +49,7 @@ inline bool shift(u64 b){
 		return b >> 8;
 	}
 }
-
+*/
 
 const char* ctos(int x){ // cordinate to string 54 -> e4
 	const char StrPieces[] = "abcdefgh";
@@ -86,39 +69,39 @@ const char* move_to_str(move m){
 }
 
 void PrintBitBoard(u64 b){
-	std::cout << '\n';
+	printf("\n");
 	for(int i=7; i>=0;i--){
 		for(int j=0; j<8; j++){
-			std::cout << (get_bit(b, i * 8 + j) ? "1":"0");
+			printf( "%c", get_bit(b, i * 8 + j) ? '1':'0');
 		}
-		std::cout << '\n';
+		printf("\n");
 	}
 }
 
 
 void ReadableBoard(position b){
-	std::string StrPieces = "RNBQKPrnbqkp";
+	static const char *StrPieces = "RNBQKPrnbqkp";
 	for(int i=7; i>=0; i--){
-		std::cout << i+1 << ' ';
+		printf("%d ", i+1);
 		for(int j=0;j<8;j++){
 			int k;
 			for(k=0; k<12; k++){
 				if( b.bitboards[k] & (1ULL << i*8+j)){
-					std::cout << StrPieces[k] << " ";
+					printf("%c ", StrPieces[k]);
 					break;
 				}
 			}
 			if(b.from == i * 8 + j && !get_bit((b.occupied[0] | b.occupied[1]), b.from)){
-				std::cout << "x ";
+				printf("x ");
 				continue;
 			}
 			if(k==12){
-				std::cout << ". ";
+				printf(". ");
 			}
 		}
-		std::cout << '\n';
+		printf("\n");
 	}
-	std::cout << "  A B C D E F G H\n\n";
+	printf("  A B C D E F G H\n\n");
 }
 
 u64 hash_position(position *x){
@@ -139,7 +122,7 @@ u64 hash_position(position *x){
 
 	return h;
 }
-inline u64 hash_move_piece(u64 old_hash, u8 piece, u8 from, u8 to, u8 side){// black moves then turn is white
+  u64 hash_move_piece(u64 old_hash, u8 piece, u8 from, u8 to, u8 side){// black moves then turn is white
 	old_hash ^= Zorbist_Black;
 	old_hash ^= Zorbist[piece + 6 * (1 - side)][from];
 	old_hash ^= Zorbist[piece + 6 * (1 - side)][to];
@@ -152,12 +135,13 @@ inline u64 hash_move_piece(u64 old_hash, u8 piece, u8 from, u8 to, u8 side){// b
 
 
 void ApplyFen(position *b, char *fen){
-	*b = {};
+	//*b = {};
+	memset(b, 0, sizeof(position));
 	//game_history = {};
 	//for(int i = 0; i < Game_History_size; i++) Game_History[i] = 0;
-	b->history_size = 0;
+	//b->history_size = 0;
 
-	if(strncmp(fen, "startpos", 8) == 0) {fen = START_FEN;Flags_History_Size = 0;}
+	if(strncmp(fen, "startpos", 8) == 0) {fen = START_FEN;flags_size = 0;}
 	char pieces[] = "RNBQKPrnbqkp";
 	char strfen[200];
 	strcpy(strfen, fen);
@@ -220,11 +204,11 @@ void ApplyFen(position *b, char *fen){
 			space++;
 		}
 		else if(space == 4){
-			b->fifty_move = std::stoi(t);
+			b->fifty_move = atoi(t);
 			space++;
 		}
 		else if(space == 5){
-			b->move_counter = std::stoi(t);
+			b->move_counter = atoi(t);
 			space++;	
 		}
 		t = strtok(NULL, " \n");
@@ -235,28 +219,31 @@ void ApplyFen(position *b, char *fen){
 //debug functions
 
 void print_u8(u8 x){
-	for(int i = 0; i < 8; i++) std::cout << (get_bit(x,i) ? "1" : "0");
-	std::cout << "\n";
+	for(int i = 0; i < 8; i++) printf("%c", get_bit(x,i) ? '1' : '0');
+	printf("\n");
 }
 
 void print_position_flags(position *b){
-	std::cout << "moves_counter " << (int)b->move_counter << std::endl;
-	std::cout << "turn " << (int)b->turn << std::endl;
-	std::cout << "from " << (int)b->from << std::endl;
-	std::cout << "to " << (int)b->to << std::endl;
-	std::cout << "enpass_sq " << (int)b->enpass_sq << std::endl;
-	std::cout << "castling\n";
+	printf("moves_counter %d\n", (int)b->move_counter);
+	printf("turn %d\n", (int)b->turn);
+	printf("from %d\n", (int)b->from);
+	printf("to %d\n", (int)b->to);
+	printf("enpass_sq %d\n", (int)b->enpass_sq);
+	printf("castling\n");
 	print_u8(b->castling);
-	std::cout << "fifty_move " << (int)b->fifty_move << std::endl;
-	std::cout << "captured_piece " << (int)b->captured_piece << std::endl;
+	printf("fifty_move ", (int)b->fifty_move);
+	printf("captured_piece ", (int)b->captured_piece);
 }
 
 void print_position_bitboards(position *b){
 	PrintBitBoard(b->occupied[0]);
-	std::cout << "BLACK\n"; 
+	printf("BLACK\n");
 	PrintBitBoard(b->occupied[1]);
-	std::cout << "WHITE\n";
-	for(int i = 0; i < 12; i++){PrintBitBoard(b->bitboards[i]);std::cout << i << std::endl;}
+	printf("WHITE\n");
+	for(int i = 0; i < 12; i++){
+		PrintBitBoard(b->bitboards[i]);
+		printf("%d\n", i);
+	}
 }
 
 

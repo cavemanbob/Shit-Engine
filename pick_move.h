@@ -19,7 +19,9 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 	movegen(&m, &b);
 	if(m.size == 0) {assert(0);scored_move _move = {}; return _move;} //mate
 	move_order(&b, &m);
-	std::vector<scored_move> scored_moves;
+	//std::vector<scored_move> scored_moves;
+	scored_move scored_moves[256] = {};
+	size_t move_size = 0;
 	int val = MIN_SCORE;
 	int alp = MIN_SCORE;
 	
@@ -30,9 +32,11 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 		make_move(&b, m.moves[i]);
 		//printf("\n %s", move_to_str(m.moves[i]));
 		alp = -negamax(&b, depth - 1, MIN_SCORE, MAX_SCORE);
+		//i_search cis = iterative_search(&b, s_time, m_time);
 		undo_move(&b, m.moves[i]);
 		scored_move _move = {m.moves[i], alp};
-		scored_moves.push_back(_move);
+		scored_moves[ move_size++ ] = _move;
+		//scored_moves.push_back(_move);
 		if(val < alp){
 			val = alp;
 		}
@@ -41,7 +45,7 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 	int swapped = 1;
 	while(swapped){
 		swapped = 0;
-		for(int i = 0; i < scored_moves.size() - 1; i++){
+		for(int i = 0; i < move_size - 1; i++){
 			if( (scored_moves[i].val < scored_moves[i+1].val)){
 				Swap_scored_move(&scored_moves[i], &scored_moves[i+1]);
 				swapped = 1;
@@ -49,7 +53,7 @@ scored_move Next(position b, int depth){ // WTF ADD TO THERE A ALPHABETA OR SOME
 		}
 	}
 	int max_val_size = 0;
-	for(int i = 0; i < scored_moves.size(); i++) if(scored_moves[i].val == val) max_val_size++;
+	for(int i = 0; i < move_size; i++) if(scored_moves[i].val == val) max_val_size++;
 	if(max_val_size == 0) assert(0);
 	
 	u8 pick_index = rand() % max_val_size;

@@ -1,3 +1,36 @@
+/*#include "c_nn.h"
+
+nn *n1;
+matrix *in, *out, *target;
+
+void set_nn(){
+	int scheme[4] = {14 * 64 + 64 + 8, 240, 48, 1};
+	n1 = create_nn(4, scheme, sigmoid, 0.01f, 0.02f);
+	in = create_matrix(14 * 64 + 64 + 8, 1);
+	out = create_matrix(1, 1);
+	target = create_matrix(1, 1);
+}
+
+void set_nn_in(position *b){
+	for(int i = 0; i < 2; i++){
+		for(int j = 0; j < 64; j++){
+			in->data[i * 64 +j] = (float) get_bit(b->occupied[i], j);
+		}
+	}
+	for(int i = 0; i < 12; i++){
+		for(int j = 0; j < 64; j++){
+			in->data[2 * 64 + i * 64 +j] = (float) get_bit(b->bitboards[i], j);
+		}
+	}
+	in->data[14 * 64] = b->enpass_sq ? 1 : 0;
+	for(int i = 0; i < 8; i++) in->data[14 * 64 + 64 + i] = (float) get_bit(b->castling, i);
+}
+
+int eval_nn(position *b){
+	set_nn_in(b);
+	//printf("%f\n", feed(n1, in)->data[0]);
+	return (int) ( feed(n1, in)->data[0] * 1000 ) - 500;
+}*/
 
 int Evaluate(position *b){
 	int mg[2] = {}; // black 0 white 1
@@ -47,7 +80,6 @@ int Evaluate(position *b){
 
 	return (mgScore * mgPhase + egScore * egPhase) / 24;
 }
-
 
 
 

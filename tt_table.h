@@ -6,22 +6,25 @@ struct tt_entry{
 	int val;
 	u8 depth;
 	u8 flag; //
+	u8 best_move;
 };
 typedef struct tt_entry tt_entry;
 
 const u64 tt_size = 1024 * 1024;
-tt_entry tt[tt_size];
+//tt_entry tt[tt_size];
+tt_entry *tt;
 
 
-inline tt_entry* get_tt_entry(u64 hash){
+ tt_entry* get_tt_entry(u64 hash){
 	return &tt[hash % tt_size];
 }
 
-tt_entry* set_tt_entry(u64 hash, int val, u8 depth){
+tt_entry* set_tt_entry(u64 hash, int val, u8 depth, u8 best_move){
 	const int id = hash % tt_size;
 	tt[id].hash = hash;
 	tt[id].val = val;
 	tt[id].depth = depth;
+	tt[id].best_move = best_move;
 	return &tt[id];
 }
 

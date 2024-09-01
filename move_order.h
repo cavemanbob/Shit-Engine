@@ -9,8 +9,9 @@ int get_victim_val(position *b, u8 sq, u8 side){
 	if(get_bit(b->bitboards[rook + 6 * side], sq)) return 30;
 	if(get_bit(b->bitboards[queen + 6 * side], sq)) return 50;
 	if(get_bit(b->bitboards[king + 6 * side], sq)) return 0;
-	ReadableBoard(*b);std::cout << "get_victim_val points to empty square at: " << (int)sq
-	  	<< " side " << (int)side << std::endl; // show board and error
+//	ReadableBoard(*b);std::cout << "get_victim_val points to empty square at: " << (int)sq
+//	  	<< " side " << (int)side << std::endl; // show board and error
+	printf("get_victim_val error \n");
 	assert(0);
 }
 
@@ -32,7 +33,14 @@ void insert_killer(move new_move, int depth){
 }
 
 void move_order(position *b, moves *x){
-	int l = 0;
+	int l = 0;	
+/*	for(int i = 0; i < x->size; i++){
+		const u64 hash = next_hash(b, b->hash, x->moves[i]);
+		if( get_tt_entry(hash)->hash == hash && get_tt_entry(hash)->flag == EXACT){
+			swap_moves(&x->moves[l], &x->moves[i]);
+			l++;
+		}
+	}*/
 	int vals[128]; // Max possible capture
 	const int capture_start = l;
 	for(int i = l; i < x->size; i++){ // captures
@@ -47,7 +55,7 @@ void move_order(position *b, moves *x){
 		vals[i - l] = get_victim_val(b, x->moves[i].to, x->moves[i].side) + lva[x->moves[i].moved_piece];
 	}
 
-	//insertation SORT
+	//insertation SORT for MVV LVA
 	int i = capture_start + 1;
 	while(i < capture_end){
 		move t_move = x->moves[i];
@@ -73,47 +81,12 @@ void move_order(position *b, moves *x){
 		}
 	}
 	
-	//printf("killer_size %d\n", killer_l - capture_end);
-	//_sleep(300);
-
-
-/*	int swapped = 1;
-	while(swapped){// MVV LVA
-		swapped = 0;
-		for(int i = capture_start; i < capture_end - 1; i++){
-			const int victim1_val = get_victim_val(b, x->moves[i].to, x->moves[i].side);
-			const int victim2_val = get_victim_val(b, x->moves[i+1].to, x->moves[i].side);
-			if( victim1_val > victim2_val){
-				swap_move(&(x->moves[i]), &(x->moves[i+1]));
-					swapped = 1;
-			}
-			else if( victim1_val == victim2_val){
-				const int agressor1_val = get_victim_val(b, x->moves[i].from, 1 - x->moves[i].side);
-				const int agressor2_val = get_victim_val(b, x->moves[i+1].from, 1 - x->moves[i].side);
-				if(agressor1_val < agressor2_val){
-					swap_move(&(x->moves[i]), &(x->moves[i+1]));
-					swapped = 1;
-				}
-			}
-		}
-	} // NOTE MAYBE ADD IS U GO TO DANGEROUS PLACE
-	
-	//MVV LVA 2
-	int i = capture_start + 1;
-	while(i < capture_end){
-		const int victim1_val = get_victim_val(b, x->moves[i].to, x->moves[i].side);
-		//const int victim2_val = get_victim_val(b, x->moves[i+1].to, x->moves[i].side);
-		int j = i;
-		while(j > capture_start && )
-
-	}*/
-
-
-/*	//going to a attacked square exepct capture is should be bad
+/*
+	//going to a attacked square exepct capture is should be bad
 	for(int i = capture_end; i < x->size - 1; i++){
 		for(int j = i; j < x->size - 1; j++){
 			if(is_square_attacked(b, x->moves[j].to, b->turn) && is_square_attacked(b, x->moves[j+1].to, b->turn) == 0){
-				swap_move(&x->moves[j], &x->moves[j+1]);
+				swap_moves(&x->moves[j], &x->moves[j+1]);
 			}
 		}
 	}*/

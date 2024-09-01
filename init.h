@@ -1,5 +1,4 @@
 
-
 void InitPawnAttacks(){
 	u64 b = 5, eb = 351843720888320ULL, c = 0xFF, ec = 0xFF0000000000;
 	for(int i=8; i<56;i++){
@@ -125,12 +124,21 @@ void InitFullBishopAttacks(){
 }
 
 
+#define magic_formula(occupied, magic_num, shift) ( (occupied * magic) >> (64 - shift) )
+u64 state_table[4] = {64, 15, 43, 1};
+
 void FindMagics(u64* mask, u64* magictable, u64 lookup[][4096], int piece){
 	for(int square = 0; square < 64; square++){
+		if(square % 16 == 0){
+			state = state_table[square / 16] + 546787087ULL;
+		}
+		
+		// maskcom -> a perm of attacks 
+		// km -> check list
 		u64 km[4096], maskcom[4096], shiftid = bit_count(mask[square]), magic;
 		u8 checkbit ;
 		//fill maskcom
-		
+/*		
 		for(int permid=0; permid < pow(2, shiftid); permid++){
 			u64 c = permid, l = 0ULL, m = mask[square]; // c to l based m
 			u64 t = bit_count(c);
@@ -143,39 +151,52 @@ void FindMagics(u64* mask, u64* magictable, u64 lookup[][4096], int piece){
 			}
 			maskcom[permid] = l;
 		}
+*/
+	
+		// carry-ripler trick for subsets 
+		u64 b = 0 , perm_size = 0;
 		do{
-			u64 l;
-			do{magic = rand64() & rand64() & rand64();}while(!magic || bit_count(magic) >= 10);
-			checkbit = 0;
+			maskcom[perm_size++] = b;
+			b = (b - mask[square]) & mask[square];
+		}while(b);
+
+	// km is overloop tester
+	//TODO -> this shit takes too much time
+		do{
+			u64 l, cnt = 0;
 			memset(km, 0, sizeof(km));
+			u64 magic_index;
+
+re_magic: // get a new magic to test 
+	
+			cnt++;
+			
+			//get a random magic
+			do{magic = rand64() & rand64() & rand64();}while(bit_count(magic) >= 12 || bit_count(magic) < 7);
 
 			for(int permid=0; permid < shiftid; permid++){
-				l = maskcom[1ULL << permid];
-				if (km[(l * magic) >> (64 - shiftid)] == 0){
-					km[(l * magic) >> (64 - shiftid)] = 1ULL;
+				// a trick to check power of 2 numbers for get early error
+				magic_index = magic_formula( maskcom[1ULL << permid], magic, shiftid);
+				if (km[ magic_index ] == cnt){
+					goto re_magic;
 				}
-				else{
-					checkbit = 1;
-					break;
-				}
+				km[ magic_index ] = cnt;
 			}
-			memset(km, 0, sizeof(km));
-			if(checkbit == 0){
-				for(int permid=0; permid< pow(2,shiftid); permid++){
-					l = maskcom[permid];
-					if (km[(l * magic) >> (64 - shiftid)] == 0){
-						km[(l * magic) >> (64 - shiftid)] = 1ULL;
-					}
-					else{
-						checkbit = 1;
-						break;
-					}
+			cnt++;
+
+			for(int permid=0; permid<(int) pow(2,shiftid); permid++){
+				magic_index = magic_formula( maskcom[ permid ], magic, shiftid);
+				if (km[ magic_index ] == cnt){
+					goto re_magic;
 				}
+				km[ magic_index ] = cnt;
 			}
-		}while(checkbit);
+
+		}while(0);
+
 		//magic found
 		magictable[square] = magic;
-		for(int permid=0; permid < pow(2, shiftid); permid++){
+		for(int permid=0; permid < (int) pow(2, shiftid); permid++){
 			u64 filteredblocker = 0ULL;
 			u64 l = maskcom[permid];
 			if(piece == ROOK){
@@ -220,10 +241,10 @@ void FindMagics(u64* mask, u64* magictable, u64 lookup[][4096], int piece){
 		}
 	}
 }
-inline u64 GetRookWay(u64 b, int square){
+ u64 GetRookWay(u64 b, int square){
 	return RookBase[square][ (b * RookMagics[square]) >> (64 - bit_count(RelevantRookMask[square]))];
 }
-inline u64 GetBishopWay(u64 b, int square){
+ u64 GetBishopWay(u64 b, int square){
 	return BishopBase[square][ (b * BishopMagics[square]) >> (64 - bit_count(RelevantBishopMask[square]))];
 }
 
@@ -248,8 +269,12 @@ void init_zorbist(){
 	Zorbist_Black = rand64();
 }
 
+void init_tt(){
+	tt = calloc(sizeof(tt_entry), tt_size);
+}
 
 void init_all(){
+	clock_t s = clock();
 	InitPawnAttacks();
 	InitPawnPushes();
 	InitKnightAttacks();
@@ -258,10 +283,32 @@ void init_all(){
 	InitBishopAttacks();
 	InitFullRookAttacks();
 	InitFullBishopAttacks();
+	printf("%lf sec\n", (double) ( clock() - s) / CLOCKS_PER_SEC); s = clock();
 	FindMagics(RelevantBishopMask, BishopMagics, BishopBase, BISHOP);
+	printf("%lf sec\n", (double) ( clock() - s) / CLOCKS_PER_SEC); s = clock();
 	FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
+	printf("%lf sec\n", (double) ( clock() - s) / CLOCKS_PER_SEC); s = clock();
 	rand64();
 	Init_pestos();
 	init_zorbist();
+	init_tt();
 	srand(time(NULL));
+/*
+	double max_time = 999999.0;
+	for(int i = 0; i < 5000; i++){
+		s = (double) clock();
+		state = i + 546787087ULL;
+		FindMagics(RelevantRookMask, RookMagics, RookBase, ROOK);
+		if( (double) (clock() - s) < max_time){
+			max_time = (double) (clock() - s);
+			printf("seed %d \n", i);
+			printf("%lf sec\n", (double) ( max_time) / CLOCKS_PER_SEC); s = clock();
+		}
+	}*/
 }
+
+
+// 0  - 16 -> 64
+// 16 - 35 -> 15
+//    -    -> 43
+//    -    -> 0

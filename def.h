@@ -1,17 +1,48 @@
-#include <iostream>
-#include <vector>
-#include <cstdlib>
-#include <cstdint>
-#include <cmath>
-#include <ctime>
-#include <algorithm>
-#include <cstring>
-#include <random>
-//#include <windows.h>
-#include <cassert>
-#define DEBUG
-#define MIN_SCORE (-200000)
-#define MAX_SCORE (200000)
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <time.h>
+#include <string.h>
+#include <assert.h>
+#include <ctype.h>
+#include <math.h>
+#include <unistd.h>
+
+#define MIN_SCORE -200000
+#define MAX_SCORE 200000
+#define NO_SQUARE 65
+#define NO_CAPTURE_FLAG 16
+#define FLIP(sq) ((sq)^56)
+
+#define ASSERT(STR) do{ printf(STR); assert(0); }while(0);
+
+
+/*
+#define STACK_CREATE(name, element, max_size) \
+	typedef struct stack_##name{\
+		element;\
+		size_t size;\
+	}stack_##name;\
+	push_##name(element){\
+	if(stack_##name##.size){printf("##name## is full\n");assert(0);}\
+*/
+
+#define FIX_STACK_CREATE(NAME, type, size) \
+	type NAME[ size ];\
+	size_t NAME##s_size;\
+	void push_##NAME(type x){\
+		if(NAME##s_size == size) ASSERT("##NAME## is full\n");\
+		NAME[ NAME##s_size++] = x;\
+	}\
+	type pop_##NAME(){\
+		if(NAME##s_size == 0) ASSERT("##NAME## is empty\n");\
+		return NAME[ --NAME##s_size];\
+	}\
+
+FIX_STACK_CREATE(flag, uint8_t, 512 * 4)
+FIX_STACK_CREATE(hash_flag, uint64_t, 512)
+
+
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -21,7 +52,7 @@ typedef uint8_t u8;
 typedef uint64_t bitboard;
 
 
-struct position{
+typedef struct position{
 
 	bitboard occupied[2]; // 0 WHITE 1 BLACK
 	bitboard bitboards[12]; // wr wn wb wq wk wp - br bn bb bq bk bp
@@ -42,11 +73,10 @@ struct position{
 
 	u64 history[512];
 	u16 history_size;
-};
+}position;
 
-#define NO_SQUARE 65
 
-enum directions : int{
+enum{
 	NORTH = 8,
 	WEST = -1,
 	SOUTH = -8,
@@ -57,10 +87,10 @@ enum directions : int{
 	DOWN
 };
 
-struct magic{
+typedef struct magic{
 	u64 mask;
 	u64 key;
-};
+}magic;
 
 u64 Pnk_attacks[4][64]={}; // PawnW PawnB Knight King
 u64 p_pushes[2][64]={};
@@ -72,11 +102,13 @@ u64 BishopBase[64][4096];
 u64 BishopMagics[64] = {};
 u64 FullRelevantRookMask[64]={};// added corners
 u64 FullRelevantBishopMask[64]={};// added corners
-enum PieceType : u64{
+
+
+enum{
 	ROOK, KNIGHT, BISHOP, QUEEN, KING, PAWN
 };
 
-enum Piece : u8{
+enum{
 	ROOK_W=0, KNIGHT_W = 1, BISHOP_W = 2, QUEEN_W = 3, KING_W = 4, PAWN_W = 5,
 	ROOK_B=6, KNIGHT_B = 7, BISHOP_B = 8, QUEEN_B = 9, KING_B = 10, PAWN_B = 11,
 	En_W = 12, En_B = 13, Pro_R = 14, Pro_N = 15, Pro_B = 16, Pro_Q = 17
@@ -84,11 +116,11 @@ enum Piece : u8{
 
 const char Promoting_str[8] = " rnbq";
 
-
-enum side : int{
+enum{
 	BLACK = 0, WHITE = 1
 };
-enum FileMask : u64{
+
+enum{
 	HFILEMASK = 0x8080808080808080,
 	AFILEMASK = 0x0101010101010101,
 	RANK8MASK = 0xFF00000000000000,
@@ -96,12 +128,13 @@ enum FileMask : u64{
 };
 
 
+
 u64 state = 11349138731524945662ULL; //seed
 //#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 char START_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
+char bestmove[] = "      ";
 
-std::string bestmove = "      ";
 
 struct game{
 	u64 wtime;
@@ -110,16 +143,17 @@ struct game{
 	u32 binc;
 	u32 movestogo;
 };
+
 u64 Node_Total = 0;
 u8 Move_Counter = 0; // move for current fen
 u8 Global_depth = 0;
 
 
-enum piece_types_enum : u8{
+enum {
 	rook = 0, knight = 1, bishop = 2, queen = 3, king = 4, pawn = 5
 };
 
-struct move{
+typedef struct move{
 	u8 from;
 	u8 to;
 	u8 moved_piece;
@@ -127,38 +161,40 @@ struct move{
 	//this is should be in position
 	u8 move_type;
 	u8 side;
-};
-enum move_types : u8{
+}move;
+
+enum {
 	only_move = 0, en_w = 1, en_b = 2, pro_r = 3, pro_n = 4, pro_b = 5, pro_q = 6,
   	short_castle_w, long_castle_w, short_castle_b, long_castle_b
 };
-#define NO_CAPTURE_FLAG 16
 
-struct scored_move{
+
+
+
+typedef struct scored_move{
 	move move;
 	int val;
-};
-typedef struct scored_move scored_move;
+}scored_move;
 
-struct moves{
+typedef struct moves{
 	move moves[256];
 	int size;
-};
+}moves;
 
-inline void moves_add(moves *source, move move){
+ void moves_add(moves *source, move move){
 	source->moves[source->size++] = move;
 }
 
 
 
-inline void push_history(position *b, u64 hash){
+ void push_history(position *b, u64 hash){
 	if(b->history_size == 511){
 		printf("\nposition history capacity is full, push is not possible!\n");
 		assert(0);
 	}
 	b->history[b->history_size++] = hash;
 }
-inline u64 pop_history(position *b){
+ u64 pop_history(position *b){
 	if(b->history_size == 0){
 		printf("\nposition history size is 0, pop is not possible!\n");
 		assert(0);
@@ -167,6 +203,7 @@ inline u64 pop_history(position *b){
 	return b->history[--b->history_size];
 }
 
+/*
 u8 Flags_History[512 * 4] = {};
 u16 Flags_History_Size = 0;
 void push_flag(u8 _flag){
@@ -183,8 +220,8 @@ u8 pop_flag(){
 	}
 	return Flags_History[--Flags_History_Size];
 }
-
-
+*/
+/*
 u64 Hash_flag_history[512] = {};
 u16 Hash_flag_history_size = 0;
 void push_hash_flag(u64 hash){
@@ -202,7 +239,7 @@ u64 pop_hash_flag(){
 	return Hash_flag_history[--Hash_flag_history_size];
 }
 
-
+*/
 
 u64 Zorbist[18][64];
 u64 Zorbist_Black;
@@ -214,12 +251,6 @@ move g_PV[64] = {};
 
 
 
-
-#define FLIP(sq) ((sq)^56)
-
-//int mg_value[6] = { 82, 337, 365, 477, 1025,  0};
-//int eg_value[6] = { 94, 281, 297, 512,  936,  0};
-//						  R    N    B    Q     K  P
 int mg_value[6] = { 477, 337, 365, 1025, 0, 82};
 int eg_value[6] = { 512, 281, 297, 936, 0, 94};
 
@@ -381,7 +412,7 @@ int gamephaseInc[6] = {2,1,1,4,0,0};
 int mg_table[12][64];
 int eg_table[12][64];
 
-enum Squares : u8{
+enum {
 	a1, b1, c1, d1, e1, f1, g1, h1,
 	a2, b2, c2, d2, e2, f2, g2, h2,
 	a3, b3, c3, d3, e3, f3, g3, h3,
@@ -391,6 +422,36 @@ enum Squares : u8{
 	a7, b7, c7, d7, e7, f7, g7, h7,
 	a8, b8, c8, d8, e8, f8, g8, h8 = 63ULL
 };
+
+
+int Best_move_id = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

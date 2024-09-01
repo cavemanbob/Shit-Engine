@@ -1,4 +1,5 @@
 
+
 void make_move(position *b, move _move){
 	const u8 from = _move.from;
 	const u8 to = _move.to;
@@ -228,3 +229,97 @@ void undo_move(position *b, move _move){
 
 }
 
+
+
+u64 next_hash( position *b, u64 hash, move _move){
+	const u8 from = _move.from;
+	const u8 to = _move.to;
+	const u8 move_type = _move.move_type;
+	const u8 side_buffer = (_move.side == WHITE) ? 0 : 6;
+	const u8 ct_side_buffer = (_move.side == WHITE) ? 6 : 0;
+	const u8 eps = b->enpass_sq;
+	const u8 moved_piece = _move.moved_piece;
+	const u8 side = _move.side;
+	const u64 occupied = b->occupied[WHITE] | b->occupied[BLACK];
+	const u64 enemy_occupied = b->occupied[1 - side];
+	const u64 enpass_buffer = (side == WHITE) ? -8 : 8;
+	const u64 old_castling = b->castling;
+
+	u64 new_castling = old_castling;
+	u8 capture = NO_CAPTURE_FLAG;
+
+	//del old flag
+	if(b->enpass_sq != NO_SQUARE)hash ^= Zorbist[14][b->enpass_sq];
+	
+	//castling flag
+	if(moved_piece == rook){
+		if     (from == 7 ) new_castling &= ~(1ULL << 3);
+		else if(from == 0 ) new_castling &= ~(1ULL << 2);
+		else if(from == 56) new_castling &= ~(1ULL << 0);
+		else if(from == 63) new_castling &= ~(1ULL << 1);
+	}
+	else if(moved_piece == king){
+		if(from == 4){
+			new_castling &= ~(0b11 << 2);
+		}
+		else if(from == 60){
+			new_castling &= ~(0b11 << 0);
+		}
+	}
+	
+	//capture
+	if(get_bit(enemy_occupied, to)){
+		int i = 0;
+		for(;i < 6; i++)
+			if(get_bit(b->bitboards[i + ct_side_buffer], to)) break;
+
+		capture = i;
+	}
+	
+	//promotion
+	if(move_type >= 3 && move_type < 7){
+		hash ^= Zorbist[pawn + side_buffer][to];
+		hash ^= Zorbist[side_buffer + move_type - 3][to];
+	}
+	//enpass
+	if(move_type >= 1 && move_type < 3){
+		hash ^= Zorbist[pawn + ct_side_buffer][eps + enpass_buffer];
+	}
+	//castle
+	if(move_type == short_castle_w){
+		new_castling &= ~(0b11 << 2);
+		hash ^= Zorbist[rook + side_buffer][7];
+		hash ^= Zorbist[rook + side_buffer][5];
+	}
+	else if(move_type == long_castle_w){
+		new_castling &= ~(0b11 << 2);
+		hash ^= Zorbist[rook + side_buffer][0];
+		hash ^= Zorbist[rook + side_buffer][3];
+	}
+	else if(move_type == short_castle_b){
+		new_castling &= ~(0b11 << 0);
+		hash ^= Zorbist[rook + side_buffer][63];
+		hash ^= Zorbist[rook + side_buffer][61];
+	}
+	else if(move_type == long_castle_b){
+		new_castling &= ~(0b11 << 0);
+		hash ^= Zorbist[rook + side_buffer][56];
+		hash ^= Zorbist[rook + side_buffer][59];
+	}
+	//calculate new flags
+	
+	if(moved_piece == pawn && abs((int)from/8 - (int)to/8) > 1){
+		hash ^= Zorbist[14][ to + enpass_buffer]; // if there are enpass set zorbist
+	}
+
+
+	//hash based new flags
+	if( capture != NO_CAPTURE_FLAG) hash ^= Zorbist[capture + ct_side_buffer][to];
+	hash = hash_move_piece(hash, moved_piece, from, to, side);
+	if(old_castling != new_castling){
+		hash ^= Zorbist[13][old_castling];
+		hash ^= Zorbist[13][new_castling];
+	}
+
+	return hash;
+}
